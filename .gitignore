@@ -1,0 +1,13 @@
+# 筛选得到的人骑车的数据集
+BikePersonDatasetNew
+
+# 对应的利用预训练好的语义分割网络得到的结果
+path_to_predictions_epoch10
+
+# 处理的结果
+selectPicture
+selectPicture_backup
+
+# 所有的压缩文件
+*.zip
+
