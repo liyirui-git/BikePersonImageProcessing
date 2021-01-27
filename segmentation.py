@@ -1,8 +1,8 @@
 import os
 import cv2
 
-def segPersonFromMask():
-    folderName = "./selectPicture"
+
+def segPersonFromMask(folderName):
 
     imgList = os.listdir(folderName + "/img")
 
@@ -33,3 +33,6 @@ def segPersonFromMask():
 
         cv2.imwrite(segPersonFolderName + "/" + imgName, img)
         cv2.imwrite(segOtherFolderName + "/" + imgName, img2)
+
+
+segPersonFromMask("./BikePersonDataset")

@@ -1,5 +1,6 @@
 # 筛选得到的人骑车的数据集
-BikePersonDatasetNew
+BikePersonDataset
+BikePersonDataset_backup
 
 # 对应的利用预训练好的语义分割网络得到的结果
 path_to_predictions_epoch10

@@ -4,10 +4,13 @@ import cv2
 from matplotlib import pyplot
 import matplotlib.image as mpimg
 
-img1Path = "./selectPicture/img"
-img2Path = "./selectPicture/mask"
-img3Path = "./selectPicture/seg/segPerson"
-img4Path = "./selectPicture/seg/segOther"
+# 之前在一部分数据集上做操作，这里的值是 "./selectPicture"
+rootPath = "./BikePersonDataset"
+
+img1Path = rootPath + "/img"
+img2Path = rootPath + "/mask"
+img3Path = rootPath + "/seg/segPerson"
+img4Path = rootPath + "/seg/segOther"
 
 # 统计分割后的图片，人体所占的比例，并绘制折线图
 def plotSegementAreaRatio():
@@ -118,6 +121,7 @@ def plotLengthWidthRatio ():
 
     print(ct)
 
+
 # 获取一些高质量的图片
 def selectProperPicture():
 
@@ -181,25 +185,38 @@ def imgDisplay(imgName):
         pyplot.xticks([])
         pyplot.yticks([])
 
-    pyplot.savefig(imgName)
+    # pyplot.savefig(imgName)
     pyplot.show()
 
 # 该函数调用了imgDisplay可以展示多张图片
-def imagesDisplay():
-    imgList = os.listdir(img1Path)
-    imgName = imgList[0]
-    imgDisplay(imgName)
+# def imagesDisplay():
+#     imgDisplay("799.jpg")
 
 
-# 将./selectPicture文件夹下的冗长的文件名，统一一下
-def pictureNameProcess():
-    imgList = os.listdir(img1Path)
-    ct = 1
-    for imgName in imgList:
-        os.rename(img1Path + "/" + imgName, img1Path + "/" + str(ct) + ".jpg")
-        os.rename(img2Path + "/" + imgName, img2Path + "/" + str(ct) + ".jpg")
-        os.rename(img3Path + "/" + imgName, img3Path + "/" + str(ct) + ".jpg")
-        os.rename(img4Path + "/" + imgName, img4Path + "/" + str(ct) + ".jpg")
-        ct = ct + 1
+###### 慎用，调用之前要知道自己在做什么 本函数只用一次就好
+# 用途：将文件夹下的图片名字导入到文本文件中，作为更名数字以后的对照
+# def imgNameListIntoFile():
+#     imgList = os.listdir(img1Path)
+#     fileName = "pictureNameList_Full.txt"
+#     if os.path.exists(fileName):
+#         print(fileName + "is Exist, you make sure to rewrite it?\n")
+#     else:
+#         file = open(fileName, "w")
+#         for imgName in imgList:
+#             file.write(imgName)
+#             file.write("\n")
+#         file.close()
 
-pictureNameProcess()
+####### 慎用，调用之前要知道自己在做什么 本函数只用一次就好
+# 用途：将rootPath文件夹下的冗长的文件名，统一一下
+# def pictureNameProcess():
+#     imgList = os.listdir(img1Path)
+#     ct = 1
+#     for imgName in imgList:
+#         os.rename(img1Path + "/" + imgName, img1Path + "/" + str(ct) + ".jpg")
+#         os.rename(img2Path + "/" + imgName, img2Path + "/" + str(ct) + ".jpg")
+#         os.rename(img3Path + "/" + imgName, img3Path + "/" + str(ct) + ".jpg")
+#         os.rename(img4Path + "/" + imgName, img4Path + "/" + str(ct) + ".jpg")
+#         ct = ct + 1
+
+imgDisplay()
