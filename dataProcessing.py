@@ -185,7 +185,14 @@ def imgDisplay(imgName):
         pyplot.xticks([])
         pyplot.yticks([])
 
-    # pyplot.savefig(imgName)
+    # 加一个文件名的反映射
+    nameList = []
+    nameFile = open("pictureNameList_Full.txt", "r")
+    for line in nameFile.readlines():
+        nameList.append(line.split("\n")[0])
+
+    imgNum = int(imgName.split(".")[0]) - 1
+    pyplot.savefig(nameList[imgNum])
     pyplot.show()
 
 # 该函数调用了imgDisplay可以展示多张图片
@@ -219,4 +226,4 @@ def imgDisplay(imgName):
 #         os.rename(img4Path + "/" + imgName, img4Path + "/" + str(ct) + ".jpg")
 #         ct = ct + 1
 
-imgDisplay()
+imgDisplay("2578.jpg")

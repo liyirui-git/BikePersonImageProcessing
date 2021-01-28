@@ -12,3 +12,6 @@ selectPicture_backup
 # 所有的压缩文件
 *.zip
 
+# 数据样例
+BikePerson 数据样例
+
