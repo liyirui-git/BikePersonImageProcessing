@@ -12,8 +12,9 @@ img2Path = rootPath + "/mask"
 img3Path = rootPath + "/seg/segPerson"
 img4Path = rootPath + "/seg/segOther"
 
+
 # 统计分割后的图片，人体所占的比例，并绘制折线图
-def plotSegementAreaRatio():
+def plot_segment_area_ratio():
     # 绘制折线图时区间采样的个数
     N = 200
     # 绘制图片的大小
@@ -72,7 +73,7 @@ def plotSegementAreaRatio():
 
 
 # 统计人骑车图像的长宽比，并绘制折线图
-def plotLengthWidthRatio ():
+def plot_length_width_ratio ():
     # 绘制折线图时区间采样的个数
     N = 200
     # 绘制图片的大小
@@ -123,7 +124,7 @@ def plotLengthWidthRatio ():
 
 
 # 获取一些高质量的图片
-def selectProperPicture():
+def select_proper_picture():
 
     areaRatio_min = 0.3
     areaRatio_max = 0.5
@@ -168,7 +169,7 @@ def selectProperPicture():
 
 
 # 展示当前得到的四种图片
-def imgDisplay(imgName):
+def img_display(imgName):
     imgArr = []
     img1 = mpimg.imread(img1Path + "/" + imgName)
     img2 = mpimg.imread(img2Path + "/" + imgName)
@@ -196,13 +197,13 @@ def imgDisplay(imgName):
     pyplot.show()
 
 # 该函数调用了imgDisplay可以展示多张图片
-# def imagesDisplay():
-#     imgDisplay("799.jpg")
+# def images_display():
+#     img_display("799.jpg")
 
 
 ###### 慎用，调用之前要知道自己在做什么 本函数只用一次就好
 # 用途：将文件夹下的图片名字导入到文本文件中，作为更名数字以后的对照
-# def imgNameListIntoFile():
+# def img_name_list_into_file():
 #     imgList = os.listdir(img1Path)
 #     fileName = "pictureNameList_Full.txt"
 #     if os.path.exists(fileName):
@@ -216,7 +217,7 @@ def imgDisplay(imgName):
 
 ####### 慎用，调用之前要知道自己在做什么 本函数只用一次就好
 # 用途：将rootPath文件夹下的冗长的文件名，统一一下
-# def pictureNameProcess():
+# def picture_name_process():
 #     imgList = os.listdir(img1Path)
 #     ct = 1
 #     for imgName in imgList:
@@ -225,5 +226,3 @@ def imgDisplay(imgName):
 #         os.rename(img3Path + "/" + imgName, img3Path + "/" + str(ct) + ".jpg")
 #         os.rename(img4Path + "/" + imgName, img4Path + "/" + str(ct) + ".jpg")
 #         ct = ct + 1
-
-imgDisplay("2578.jpg")

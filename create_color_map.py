@@ -10,14 +10,15 @@ random.seed(DATA_LOADER_SEED)
 class_colors = [(random.randint(0, 255), random.randint(
     0, 255), random.randint(0, 255)) for _ in range(5000)]
 
-class_name_en = ["Background","Hat","Hair","Glove","Sunglasses","UpperClothes",
+color_name_en = ["Background", "Hat", "Hair", "Glove", "Sunglasses", "UpperClothes",
                  "Dress","Coat","Socks","Pants","Jumpsuits","Scarf","Skirt","Face",
                  "Left-arm","Right-arm","Left-leg","Right-leg","Left-shoe","Right-shoe"]
 
-class_name_ch = ["背景","帽子","头发","手套","太阳镜","上衣","连衣裙","外套","袜子","裤子",
+color_name_ch = ["背景", "帽子", "头发", "手套", "太阳镜", "上衣", "连衣裙", "外套", "袜子", "裤子",
                  "连身裤","围巾","短裙","脸部","左臂","右臂","左腿","右腿","左鞋","右鞋"]
 
-class_colors_new = []
+color_hex = []
+
 for i in range(0, 20):
     prt = "0x"
     for n in class_colors[i]:
@@ -31,23 +32,25 @@ for i in range(0, 20):
     nprt = nprt + prt[6:]
     nprt = nprt + prt[4:6]
     nprt = nprt + prt[2:4]
-    print(str(i) + ": " + nprt)
-    class_colors_new.append(nprt)
+    # print(str(i) + ": " + nprt)
+    color_hex.append(nprt)
+
 
 # 做一个颜色对照表
-pyplot.figure(figsize=(12, 12))
-for i in range(0, 4):
-    for j in range (0, 5):
-        k = i * 5 + j
-        xy = np.array([0.05 + 0.2*j, 0.9 - 0.25*i])
-        ax = pyplot.subplot()
-        rect = patches.Rectangle(xy, 0.1, 0.05, color='#'+class_colors_new[k][2:])
-        ax.add_patch(rect)
-        pyplot.text(xy[0]+0.02, xy[1]-0.05, class_name_ch[k], fontdict={'family':'SimHei','size':24})
-        pyplot.text(xy[0]+0.02, xy[1]-0.1, class_name_en[k], fontdict={'size':18})
-        #pyplot.text()
+def plot_color_map():
+    pyplot.figure(figsize=(12, 12))
+    for i in range(0, 4):
+        for j in range (0, 5):
+            k = i * 5 + j
+            xy = np.array([0.05 + 0.2*j, 0.9 - 0.25*i])
+            ax = pyplot.subplot()
+            rect = patches.Rectangle(xy, 0.1, 0.05, color='#' + color_hex[k][2:])
+            ax.add_patch(rect)
+            pyplot.text(xy[0] + 0.02, xy[1] - 0.05, color_name_ch[k], fontdict={'family': 'SimHei', 'size':24})
+            pyplot.text(xy[0] + 0.02, xy[1] - 0.1, color_name_en[k], fontdict={'size':18})
+            #pyplot.text()
 
-pyplot.xticks([])
-pyplot.yticks([])
-pyplot.savefig("colormap.png")
-pyplot.show()
+    pyplot.xticks([])
+    pyplot.yticks([])
+    pyplot.savefig("colormap.png")
+    pyplot.show()
