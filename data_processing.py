@@ -11,6 +11,9 @@ img1Path = rootPath + "/img"
 img2Path = rootPath + "/mask"
 img3Path = rootPath + "/seg/segPerson"
 img4Path = rootPath + "/seg/segOther"
+schp_lip_path = rootPath + "/LIP"
+schp_atr_path = rootPath + "/ATR"
+schp_pascal_path = rootPath + "/PASCAL"
 
 
 # 统计分割后的图片，人体所占的比例，并绘制折线图
@@ -169,12 +172,14 @@ def select_proper_picture():
 
 
 # 展示当前得到的四种图片
+# 这里其实应该将函数里面的这个 imgArr作为一个参数传进来
+# 或者是把文件名放在一个数组里面传进来
 def img_display(imgName):
     imgArr = []
-    img1 = mpimg.imread(img1Path + "/" + imgName)
-    img2 = mpimg.imread(img2Path + "/" + imgName)
-    img3 = mpimg.imread(img3Path + "/" + imgName)
-    img4 = mpimg.imread(img4Path + "/" + imgName)
+    img1 = mpimg.imread(img1Path + "/" + imgName + ".jpg")
+    img2 = mpimg.imread(img2Path + "/" + imgName + ".jpg")
+    img3 = mpimg.imread(img3Path + "/" + imgName + ".jpg")
+    img4 = mpimg.imread(img4Path + "/" + imgName + ".jpg")
     imgArr.append(img1)
     imgArr.append(img2)
     imgArr.append(img3)
@@ -226,3 +231,37 @@ def img_display(imgName):
 #         os.rename(img3Path + "/" + imgName, img3Path + "/" + str(ct) + ".jpg")
 #         os.rename(img4Path + "/" + imgName, img4Path + "/" + str(ct) + ".jpg")
 #         ct = ct + 1
+
+
+# 展示不同来源的分割结果的图像
+def img_display_diff_source(imgName):
+    imgArr = []
+    img1 = mpimg.imread(img1Path + "/" + imgName + ".jpg")
+    img2 = mpimg.imread(img2Path + "/" + imgName + ".jpg")
+    img3 = mpimg.imread(schp_lip_path + "/" + imgName + ".png")
+    img4 = mpimg.imread(schp_atr_path + "/" + imgName + ".png")
+    img5 = mpimg.imread(schp_pascal_path + "/" + imgName + ".png")
+    imgArr.append(img1)
+    imgArr.append(img2)
+    imgArr.append(img3)
+    imgArr.append(img4)
+    imgArr.append(img5)
+
+    for i in range(0, len(imgArr)):
+        pyplot.subplot(1, len(imgArr), i + 1)
+        pyplot.imshow(imgArr[i])
+        pyplot.xticks([])
+        pyplot.yticks([])
+
+    # 加一个文件名的反映射
+    nameList = []
+    nameFile = open("pictureNameList_Full.txt", "r")
+    for line in nameFile.readlines():
+        nameList.append(line.split("\n")[0])
+
+    imgNum = int(imgName.split(".")[0]) - 1
+    pyplot.savefig("diff_source_" + nameList[imgNum])
+    pyplot.show()
+
+
+img_display_diff_source("1000")

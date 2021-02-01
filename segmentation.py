@@ -1,6 +1,5 @@
 import os
 import cv2
-from create_color_map import color_name_en, color_name_ch
 
 class_color_list = [[197, 215, 20],[132, 248, 207],[155, 244, 183],
                     [111, 71, 144],[71, 48, 128],[75, 158, 50],
@@ -9,6 +8,13 @@ class_color_list = [[197, 215, 20],[132, 248, 207],[155, 244, 183],
                     [124, 166, 32],[97, 113, 122],[72, 229, 46],
                     [41, 163, 250],[55, 154, 149],[63, 170, 104],
                     [147, 227, 46],[197, 162, 123]]
+
+color_name_en = ["Background", "Hat", "Hair", "Glove", "Sunglasses", "UpperClothes",
+                "Dress","Coat","Socks","Pants","Jumpsuits","Scarf","Skirt","Face",
+                "Left-arm","Right-arm","Left-leg","Right-leg","Left-shoe","Right-shoe"]
+
+color_name_ch = ["背景", "帽子", "头发", "手套", "太阳镜", "上衣", "连衣裙", "外套", "袜子", "裤子",
+                 "连身裤", "围巾", "短裙", "脸部", "左臂", "右臂", "左腿", "右腿", "左鞋", "右鞋"]
 
 CLASS_NUM = 20
 
@@ -100,4 +106,4 @@ def seg_upper_body_from_mask(folder_name):
         ct = ct+1
 
 
-seg_upper_body_from_mask(FOLDER_NAME)
+# seg_upper_body_from_mask(FOLDER_NAME)
