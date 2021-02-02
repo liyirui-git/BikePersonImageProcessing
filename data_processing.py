@@ -4,17 +4,10 @@ import cv2
 from matplotlib import pyplot
 import matplotlib.image as mpimg
 import utils
+import random
 
 # 之前在一部分数据集上做操作，这里的值是 "./selectPicture"
-rootPath = "./BikePersonDataset"
-
-img1Path = rootPath + "/img"
-img2Path = rootPath + "/mask"
-img3Path = rootPath + "/seg/segPerson"
-img4Path = rootPath + "/seg/segOther"
-schp_lip_path = rootPath + "/LIP"
-schp_atr_path = rootPath + "/ATR"
-schp_pascal_path = rootPath + "/PASCAL"
+ROOT_PATH = "./BikePersonDataset"
 
 
 # 统计分割后的图片，人体所占的比例，并绘制折线图
@@ -64,14 +57,13 @@ def plot_length_width_ratio ():
 # 统计左右半边，分割结果所占的面积的比，并且将图片分类
 def plot_left_right_area_ratio():
     # picture_folder_name = rootPath + "/side/img"
-    mask_folder_name = rootPath + "/side/mask/"
+    mask_folder_name = ROOT_PATH + "/side/mask/"
     mask_img_list = os.listdir(mask_folder_name)
-    left_folder_name = rootPath + "/side/left/"
-    right_folder_name = rootPath + "/side/right/"
-    if not os.path.exists(left_folder_name):
-        os.mkdir(left_folder_name)
-    if not os.path.exists(right_folder_name):
-        os.mkdir(right_folder_name)
+
+    folder_list = utils.makedir([ROOT_PATH + "/side/left/", ROOT_PATH + "/side/right/"])
+
+    left_folder_name = folder_list[0]
+    right_folder_name = folder_list[1]
 
     value = []
 
@@ -108,13 +100,13 @@ def plot_left_right_area_ratio():
 
 
 def plot_face_area_ratio():
-    picture_folder_name = rootPath + "/back_front/img/"
-    mask_folder_name = rootPath + "/back_front/mask/"
+    picture_folder_name = ROOT_PATH + "/back_front/img/"
+    mask_folder_name = ROOT_PATH + "/back_front/mask/"
     mask_img_list = os.listdir(mask_folder_name)
 
-    folder_list = utils.makedir([rootPath + "/back_front/front/", rootPath + "/back_front/front_mask/",
-                                rootPath + "/back_front/back/", rootPath + "/back_front/back_mask/",
-                                rootPath + "/back_front/other/", rootPath + "/back_front/other_mask/"])
+    folder_list = utils.makedir([ROOT_PATH + "/back_front/front/", ROOT_PATH + "/back_front/front_mask/",
+                                 ROOT_PATH + "/back_front/back/", ROOT_PATH + "/back_front/back_mask/",
+                                 ROOT_PATH + "/back_front/other/", ROOT_PATH + "/back_front/other_mask/"])
 
     front_folder_name = folder_list[0]
     front_mask_folder_name = folder_list[1]
@@ -165,16 +157,16 @@ def plot_face_area_ratio():
 
 
 # 获取一些前后视角和侧视角的图片
-def select_proper_picture():
+def select_view_angle_picture():
     lwRatio_front_back = 1.9
     lwRatio_side = 1.1
 
-    pictureFolderName = rootPath + "/img"
-    maskFolderName = rootPath + "/LIP"
+    pictureFolderName = ROOT_PATH + "/img"
+    maskFolderName = ROOT_PATH + "/LIP"
     pictureList = os.listdir(pictureFolderName)
 
-    back_front_folder_name = rootPath + "/back_front"
-    side_folder_name = rootPath + "/side"
+    back_front_folder_name = ROOT_PATH + "/back_front"
+    side_folder_name = ROOT_PATH + "/side"
     if not os.path.exists(back_front_folder_name):
         os.mkdir(back_front_folder_name)
         os.mkdir(back_front_folder_name + "/img")
@@ -203,46 +195,56 @@ def select_proper_picture():
         count = count + 1
         if count % 100 == 0: print(count)
 
+
 # 展示当前得到的四种图片
 # 这里其实应该将函数里面的这个 imgArr作为一个参数传进来
 # 或者是把文件名放在一个数组里面传进来
-def img_display(imgName):
-    imgArr = []
-    img1 = mpimg.imread(img1Path + "/" + imgName + ".jpg")
-    img2 = mpimg.imread(img2Path + "/" + imgName + ".jpg")
-    img3 = mpimg.imread(img3Path + "/" + imgName + ".jpg")
-    img4 = mpimg.imread(img4Path + "/" + imgName + ".jpg")
-    imgArr.append(img1)
-    imgArr.append(img2)
-    imgArr.append(img3)
-    imgArr.append(img4)
+def img_display_after_segment(img_name):
+    img_name_list = [ROOT_PATH + "/img" + "/" + img_name + ".jpg",
+                     ROOT_PATH + "/mask" + "/" + img_name + ".jpg",
+                     ROOT_PATH + "/seg/segPerson" + "/" + img_name + ".jpg",
+                     ROOT_PATH + "/seg/segOther" + "/" + img_name + ".jpg"]
 
-    for i in range(0, 4):
-        pyplot.subplot(1, 4, i + 1)
-        pyplot.imshow(imgArr[i])
-        pyplot.xticks([])
-        pyplot.yticks([])
+    save_img_name = utils.get_origin_name(img_name)
 
+    utils.img_display(img_name_list, save_img_name)
+
+
+# 展示不同来源的分割结果的图像
+def img_display_from_diff_source(img_name, fig_show=True):
+    img_name_list = [ROOT_PATH + "/img" + "/" + img_name + ".jpg",
+                     ROOT_PATH + "/mask" + "/" + img_name + ".jpg",
+                     ROOT_PATH + "/LIP" + "/" + img_name + ".png",
+                     ROOT_PATH + "/ATR" + "/" + img_name + ".png",
+                     ROOT_PATH + "/PASCAL" + "/" + img_name + ".png"]
     # 加一个文件名的反映射
-    nameList = []
-    nameFile = open("pictureNameList_Full.txt", "r")
-    for line in nameFile.readlines():
-        nameList.append(line.split("\n")[0])
+    save_img_name = "diff_source_" + utils.get_origin_name(img_name)
+    # 图片名列表
+    tag_list = ['origin', 'isk-LIP', 'schp-LIP', 'schp-ATR', 'schp-PASCAL']
+    utils.img_display(img_name_list, save_img_name, tag_list, fig_show=fig_show)
 
-    imgNum = int(imgName.split(".")[0]) - 1
-    pyplot.savefig(nameList[imgNum])
-    pyplot.show()
 
-# 该函数调用了imgDisplay可以展示多张图片
-# def images_display():
-#     img_display("799.jpg")
+def random_get_img(num, seed=0, fig_show=True):
+    random.seed(seed)
+    img_list = [str(random.randint(0, 6340)) for _ in range(num)]
+    for img in img_list:
+        img_display_from_diff_source(img, fig_show=fig_show)
 
+# img_display_from_diff_source("3255")
+
+# img_display_after_segment("15")
+
+# select_proper_picture()
+
+# plot_left_right_area_ratio()
+
+# plot_face_area_ratio()
 
 
 ###### 慎用，调用之前要知道自己在做什么 本函数只用一次就好
 # 用途：将文件夹下的图片名字导入到文本文件中，作为更名数字以后的对照
 # def img_name_list_into_file():
-#     imgList = os.listdir(img1Path)
+#     imgList = os.listdir(root_path + "/img")
 #     fileName = "pictureNameList_Full.txt"
 #     if os.path.exists(fileName):
 #         print(fileName + "is Exist, you make sure to rewrite it?\n")
@@ -256,54 +258,11 @@ def img_display(imgName):
 ####### 慎用，调用之前要知道自己在做什么 本函数只用一次就好
 # 用途：将rootPath文件夹下的冗长的文件名，统一一下
 # def picture_name_process():
-#     imgList = os.listdir(img1Path)
+#     imgList = os.listdir(root_path + "/img")
 #     ct = 1
 #     for imgName in imgList:
-#         os.rename(img1Path + "/" + imgName, img1Path + "/" + str(ct) + ".jpg")
-#         os.rename(img2Path + "/" + imgName, img2Path + "/" + str(ct) + ".jpg")
-#         os.rename(img3Path + "/" + imgName, img3Path + "/" + str(ct) + ".jpg")
-#         os.rename(img4Path + "/" + imgName, img4Path + "/" + str(ct) + ".jpg")
+#         os.rename(root_path + "/img" + "/" + imgName, root_path + "/img" + "/" + str(ct) + ".jpg")
+#         os.rename(root_path + "/mask" + "/" + imgName, root_path + "/mask" + "/" + str(ct) + ".jpg")
+#         os.rename(root_path + "/seg/segPerson" + "/" + imgName, root_path + "/seg/segPerson" + "/" + str(ct) + ".jpg")
+#         os.rename(root_path + "/seg/segOther" + "/" + imgName, root_path + "/seg/segOther" + "/" + str(ct) + ".jpg")
 #         ct = ct + 1
-
-
-# 展示不同来源的分割结果的图像
-def img_display_diff_source(imgName):
-    pyplot.figure(figsize=(12, 9))
-    imgArr = []
-    img1 = mpimg.imread(img1Path + "/" + imgName + ".jpg")
-    img2 = mpimg.imread(img2Path + "/" + imgName + ".jpg")
-    img3 = mpimg.imread(schp_lip_path + "/" + imgName + ".png")
-    img4 = mpimg.imread(schp_atr_path + "/" + imgName + ".png")
-    img5 = mpimg.imread(schp_pascal_path + "/" + imgName + ".png")
-    imgArr.append(img1)
-    imgArr.append(img2)
-    imgArr.append(img3)
-    imgArr.append(img4)
-    imgArr.append(img5)
-
-    tag = ['origin', 'isk-LIP', 'schp-LIP', 'schp-ATR', 'schp-PASCAL']
-    for i in range(0, len(imgArr)):
-        pyplot.subplot(1, len(imgArr), i + 1)
-        pyplot.text(20, -30, tag[i], fontdict={'size':20})
-        pyplot.imshow(imgArr[i])
-        pyplot.xticks([])
-        pyplot.yticks([])
-
-    # 加一个文件名的反映射
-    nameList = []
-    nameFile = open("pictureNameList_Full.txt", "r")
-    for line in nameFile.readlines():
-        nameList.append(line.split("\n")[0])
-
-    imgNum = int(imgName.split(".")[0]) - 1
-    pyplot.savefig("diff_source_" + nameList[imgNum])
-    pyplot.show()
-
-
-# img_display_diff_source("478")
-
-# select_proper_picture()
-
-# plot_left_right_area_ratio()
-
-plot_face_area_ratio()
