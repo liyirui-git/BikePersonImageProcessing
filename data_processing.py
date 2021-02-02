@@ -1,26 +1,49 @@
 # 本程序统计所有的人骑车图像的长宽比
 import os
 import cv2
-from matplotlib import pyplot
-import matplotlib.image as mpimg
 import utils
 import random
+import shutil
 
 # 之前在一部分数据集上做操作，这里的值是 "./selectPicture"
 ROOT_PATH = "./BikePersonDataset"
 
 
+# 将 BikePerson 数据集中的数据集集中到同一个文件夹下，并且防止重名的事情发生。
+def concentrating_img_and_rename():
+    source_folder_name = "C:\\Users\\11029\\Documents\\BUAAmaster\\GPdataset\\BikePerson Dataset"
+    subfolder_list = ["cam_1_2", "cam_2_3", "cam_3_5", "cam_4_5", "cam_4_5", "cam_5_6", "cam_6_1"]
+    subsubfolder_name = "Eletric"
+    target_folder_name = "BikePersonDatasetNew"
+    os.mkdir(target_folder_name)
+
+    ct = 0
+
+    for subfolder_name in subfolder_list:
+        temp_path = source_folder_name + "\\" + subfolder_name + "\\" + subsubfolder_name
+        sub3_folder_list = os.listdir(temp_path)
+        for sub3_folderName in sub3_folder_list:
+            subtemp_path = temp_path + "\\" + sub3_folderName
+            pic_file_list = os.listdir(subtemp_path)
+            for pic_file_name in pic_file_list:
+                src_path = subtemp_path + "\\" + pic_file_name
+                dst_path = target_folder_name + "\\" + subfolder_name + "-" + sub3_folderName + "-" + pic_file_name
+                print(ct)
+                shutil.copyfile(src_path, dst_path)
+                ct = ct + 1
+
+
 # 统计分割后的图片，人体所占的比例，并绘制折线图
 def plot_segment_area_ratio():
-    pictureFolderName = "./path_to_predictions_epoch10"
-    pictureList = os.listdir(pictureFolderName)
+    picture_folder_name = "./path_to_predictions_epoch10"
+    picture_list = os.listdir(picture_folder_name)
 
     value = []
 
     count = 0
-    for picture in pictureList:
+    for picture in picture_list:
         # 计算分割结果的像素在所有像素中所占的比例
-        img = cv2.imread(pictureFolderName + "/" + picture)
+        img = cv2.imread(picture_folder_name + "/" + picture)
         shape = img.shape
         area = shape[0] * shape[1]
         # 图片的通道与数组下标的对应关系
@@ -40,14 +63,14 @@ def plot_segment_area_ratio():
 
 # 统计人骑车图像的长宽比，并绘制折线图
 def plot_length_width_ratio ():
-    pictureFolderName = "./BikePersonDatasetNew"
-    pictureList = os.listdir(pictureFolderName)
+    picture_folder_name = "./BikePersonDatasetNew"
+    picture_list = os.listdir(picture_folder_name)
 
     value = []
 
-    for picture in pictureList:
+    for picture in picture_list:
         # 如何得到picture的尺寸大小？
-        img = cv2.imread(pictureFolderName + "/" + picture)
+        img = cv2.imread(picture_folder_name + "/" + picture)
         shape = img.shape
         value.append(shape[0] / shape[1])
 

@@ -75,7 +75,7 @@ def color_rules_of_isk():
         return color_hex
 
 
-# 做一个颜色对照表，最大不超过20种颜色
+# 绘制一个颜色对照表，最大不超过20种颜色
 def plot_color_map(color_hex, color_name_ch, color_name_en, out_file_name):
     color_num = len(color_hex)
     pyplot.figure(figsize=(12, 12))

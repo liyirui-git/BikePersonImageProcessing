@@ -2,6 +2,7 @@ import os
 from matplotlib import pyplot
 import matplotlib.image as mpimg
 
+
 # 创建文件夹
 # folder_name_list: 字符串数组
 # 返回 folder_name_list
