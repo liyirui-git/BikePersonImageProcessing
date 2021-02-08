@@ -33,6 +33,30 @@ def concentrating_img_and_rename():
                 ct = ct + 1
 
 
+# 将 Bike Person 的数据整理成 DukeMTMC-reID 的数据格式
+def img_rename_and_concentrating_as_dukemtmcreid():
+    source_folder_name = "C:\\Users\\11029\\Documents\\BUAAmaster\\GPdataset\\BikePerson Dataset"
+    subfolder_list = ["cam_1_2", "cam_2_3", "cam_3_5", "cam_4_5", "cam_4_5", "cam_5_6", "cam_6_1"]
+    subsubfolder_name = "Eletric"
+    target_folder_name = utils.makedir_from_name_list(["BikePersonDatasetNew"])[0]
+
+    ct = 1
+    for subfolder_name in subfolder_list:
+        temp_path = source_folder_name + "\\" + subfolder_name + "\\" + subsubfolder_name
+        sub3_folder_list = os.listdir(temp_path)
+        for sub3_folder_name in sub3_folder_list:
+            subtemp_path = temp_path + "\\" + sub3_folder_name
+            pic_file_list = os.listdir(subtemp_path)
+            for pic_file_name in pic_file_list:
+                pic_file_name_split = pic_file_name.split('_')
+                camera, vehicle, frame = pic_file_name_split[0], pic_file_name_split[1], pic_file_name_split[2]
+                src_path = subtemp_path + "\\" + pic_file_name
+                dst_path = target_folder_name + "\\" + str(ct).zfill(4) + "_c" + str(camera[3]) + "_" + vehicle + frame
+                print(ct)
+                shutil.copyfile(src_path, dst_path)
+            ct = ct + 1
+
+
 # 统计分割后的图片，人体所占的比例，并绘制折线图
 def plot_segment_area_ratio():
     picture_folder_name = "./path_to_predictions_epoch10"
@@ -83,7 +107,7 @@ def plot_left_right_area_ratio():
     mask_folder_name = ROOT_PATH + "/side/mask/"
     mask_img_list = os.listdir(mask_folder_name)
 
-    folder_list = utils.makedir([ROOT_PATH + "/side/left/", ROOT_PATH + "/side/right/"])
+    folder_list = utils.makedir_from_name_list([ROOT_PATH + "/side/left/", ROOT_PATH + "/side/right/"])
 
     left_folder_name = folder_list[0]
     right_folder_name = folder_list[1]
@@ -127,9 +151,9 @@ def plot_face_area_ratio():
     mask_folder_name = ROOT_PATH + "/back_front/mask/"
     mask_img_list = os.listdir(mask_folder_name)
 
-    folder_list = utils.makedir([ROOT_PATH + "/back_front/front/", ROOT_PATH + "/back_front/front_mask/",
-                                 ROOT_PATH + "/back_front/back/", ROOT_PATH + "/back_front/back_mask/",
-                                 ROOT_PATH + "/back_front/other/", ROOT_PATH + "/back_front/other_mask/"])
+    folder_list = utils.makedir_from_name_list([ROOT_PATH + "/back_front/front/", ROOT_PATH + "/back_front/front_mask/",
+                                                ROOT_PATH + "/back_front/back/", ROOT_PATH + "/back_front/back_mask/",
+                                                ROOT_PATH + "/back_front/other/", ROOT_PATH + "/back_front/other_mask/"])
 
     front_folder_name = folder_list[0]
     front_mask_folder_name = folder_list[1]

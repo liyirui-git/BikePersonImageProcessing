@@ -5,6 +5,7 @@
 /BikePerson 数据样例/
 # 筛选得到的人骑车的数据集
 /BikePersonDataset/
+/BikePersonDatasetNew/
 /BikePersonDataset_backup/
 # 数据展示
 /img_display/
@@ -13,3 +14,4 @@
 # 处理的结果
 /selectPicture/
 /selectPicture_backup/
+

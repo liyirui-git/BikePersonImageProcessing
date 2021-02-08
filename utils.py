@@ -6,7 +6,7 @@ import matplotlib.image as mpimg
 # 创建文件夹
 # folder_name_list: 字符串数组
 # 返回 folder_name_list
-def makedir(folder_name_list):
+def makedir_from_name_list(folder_name_list):
     for folder_name in folder_name_list:
         if not os.path.exists(folder_name):
             os.mkdir(folder_name)
