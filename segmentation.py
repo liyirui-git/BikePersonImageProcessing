@@ -18,7 +18,7 @@ color_name_ch = ["背景", "帽子", "头发", "手套", "太阳镜", "上衣", 
 
 CLASS_NUM = 20
 
-FOLDER_NAME = "./BikePersonDataset"
+FOLDER_NAME = "./BikePersonDatasetProcess"
 
 
 def seg_person_from_mask(folder_name):

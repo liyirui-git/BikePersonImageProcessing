@@ -4,9 +4,9 @@
 # 数据样例
 /BikePerson 数据样例/
 # 筛选得到的人骑车的数据集
-/BikePersonDataset/
+/BikePersonDatasetProcess/
 /BikePersonDatasetNew/
-/BikePersonDataset_backup/
+/BikePersonDatasetProcess_backup/
 # 数据展示
 /img_display/
 # 对应的利用预训练好的语义分割网络得到的结果

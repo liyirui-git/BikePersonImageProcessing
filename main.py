@@ -1,3 +1,3 @@
 import data_processing
 
-data_processing.img_rename_and_concentrating_as_dukemtmcreid()
+data_processing.get_query_from_test_images()

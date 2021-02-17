@@ -6,41 +6,43 @@ import random
 import shutil
 
 # 之前在一部分数据集上做操作，这里的值是 "./selectPicture"
-ROOT_PATH = "./BikePersonDataset"
+ROOT_PATH = "./BikePersonDatasetProcess"
 
 
 # 将 BikePerson 数据集中的数据集集中到同一个文件夹下，并且防止重名的事情发生。
-def concentrating_img_and_rename():
-    source_folder_name = "C:\\Users\\11029\\Documents\\BUAAmaster\\GPdataset\\BikePerson Dataset"
-    subfolder_list = ["cam_1_2", "cam_2_3", "cam_3_5", "cam_4_5", "cam_4_5", "cam_5_6", "cam_6_1"]
-    subsubfolder_name = "Eletric"
-    target_folder_name = "BikePersonDatasetNew"
-    os.mkdir(target_folder_name)
-
-    ct = 0
-
-    for subfolder_name in subfolder_list:
-        temp_path = source_folder_name + "\\" + subfolder_name + "\\" + subsubfolder_name
-        sub3_folder_list = os.listdir(temp_path)
-        for sub3_folderName in sub3_folder_list:
-            subtemp_path = temp_path + "\\" + sub3_folderName
-            pic_file_list = os.listdir(subtemp_path)
-            for pic_file_name in pic_file_list:
-                src_path = subtemp_path + "\\" + pic_file_name
-                dst_path = target_folder_name + "\\" + subfolder_name + "-" + sub3_folderName + "-" + pic_file_name
-                print(ct)
-                shutil.copyfile(src_path, dst_path)
-                ct = ct + 1
+# def concentrating_img_and_rename():
+#     source_folder_name = "C:\\Users\\11029\\Documents\\BUAAmaster\\GPdataset\\BikePerson Dataset"
+#     subfolder_list = ["cam_1_2", "cam_2_3", "cam_3_5", "cam_4_5", "cam_4_5", "cam_5_6", "cam_6_1"]
+#     subsubfolder_name = "Eletric"
+#     target_folder_name = "BikePersonDatasetNew"
+#     os.mkdir(target_folder_name)
+#
+#     ct = 0
+#
+#     for subfolder_name in subfolder_list:
+#         temp_path = source_folder_name + "\\" + subfolder_name + "\\" + subsubfolder_name
+#         sub3_folder_list = os.listdir(temp_path)
+#         for sub3_folderName in sub3_folder_list:
+#             subtemp_path = temp_path + "\\" + sub3_folderName
+#             pic_file_list = os.listdir(subtemp_path)
+#             for pic_file_name in pic_file_list:
+#                 src_path = subtemp_path + "\\" + pic_file_name
+#                 dst_path = target_folder_name + "\\" + subfolder_name + "-" + sub3_folderName + "-" + pic_file_name
+#                 print(ct)
+#                 shutil.copyfile(src_path, dst_path)
+#                 ct = ct + 1
 
 
 # 将 Bike Person 的数据整理成 DukeMTMC-reID 的数据格式
+# 这里以编号为奇数的作为训练集，编号为偶数的为测试集
 def img_rename_and_concentrating_as_dukemtmcreid():
     source_folder_name = "C:\\Users\\11029\\Documents\\BUAAmaster\\GPdataset\\BikePerson Dataset"
     subfolder_list = ["cam_1_2", "cam_2_3", "cam_3_5", "cam_4_5", "cam_4_5", "cam_5_6", "cam_6_1"]
-    subsubfolder_name = "Eletric"
-    target_folder_name = utils.makedir_from_name_list(["BikePersonDatasetNew"])[0]
+    target_folder_name_list = utils.makedir_from_name_list(["BikePersonDatasetNew\\bounding_box_train",
+                                                            "BikePersonDatasetNew\\bounding_box_test"])
 
     ct = 1
+    subsubfolder_name = "Eletric"       # Eletric person id 编号从 1-446
     for subfolder_name in subfolder_list:
         temp_path = source_folder_name + "\\" + subfolder_name + "\\" + subsubfolder_name
         sub3_folder_list = os.listdir(temp_path)
@@ -51,10 +53,94 @@ def img_rename_and_concentrating_as_dukemtmcreid():
                 pic_file_name_split = pic_file_name.split('_')
                 camera, vehicle, frame = pic_file_name_split[0], pic_file_name_split[1], pic_file_name_split[2]
                 src_path = subtemp_path + "\\" + pic_file_name
+                if ct % 2 == 1:
+                    target_folder_name = target_folder_name_list[0]
+                else:
+                    target_folder_name = target_folder_name_list[1]
                 dst_path = target_folder_name + "\\" + str(ct).zfill(4) + "_c" + str(camera[3]) + "_" + vehicle + frame
-                print(ct)
+                # print(ct)
                 shutil.copyfile(src_path, dst_path)
             ct = ct + 1
+    print(ct)
+
+    subsubfolder_name = "Bike"      # Bike person id 编号从 447-5077
+    for subfolder_name in subfolder_list:
+        temp_path = source_folder_name + "\\" + subfolder_name + "\\" + subsubfolder_name
+        sub3_folder_list = os.listdir(temp_path)
+        for sub3_folder_name in sub3_folder_list:
+            subtemp_path = temp_path + "\\" + sub3_folder_name
+            pic_file_list = os.listdir(subtemp_path)
+            for pic_file_name in pic_file_list:
+                pic_file_name_split = pic_file_name.split('_')
+                camera, vehicle, frame = pic_file_name_split[0], pic_file_name_split[1], pic_file_name_split[2]
+                src_path = subtemp_path + "\\" + pic_file_name
+                if ct % 2 == 1:
+                    target_folder_name = target_folder_name_list[0]
+                else:
+                    target_folder_name = target_folder_name_list[1]
+                dst_path = target_folder_name + "\\" + str(ct).zfill(4) + "_c" + str(camera[3]) + "_" + vehicle + frame
+                # print(ct)
+                shutil.copyfile(src_path, dst_path)
+            ct = ct + 1
+    print(ct)
+
+    subsubfolder_name = "Motor"     # Motor person id 编号从 5078-6427
+    for subfolder_name in subfolder_list:
+        temp_path = source_folder_name + "\\" + subfolder_name + "\\" + subsubfolder_name
+        sub3_folder_list = os.listdir(temp_path)
+        for sub3_folder_name in sub3_folder_list:
+            subtemp_path = temp_path + "\\" + sub3_folder_name
+            pic_file_list = os.listdir(subtemp_path)
+            for pic_file_name in pic_file_list:
+                pic_file_name_split = pic_file_name.split('_')
+                camera, vehicle, frame = pic_file_name_split[0], pic_file_name_split[1], pic_file_name_split[2]
+                src_path = subtemp_path + "\\" + pic_file_name
+                if ct % 2 == 1:
+                    target_folder_name = target_folder_name_list[0]
+                else:
+                    target_folder_name = target_folder_name_list[1]
+                dst_path = target_folder_name + "\\" + str(ct).zfill(4) + "_c" + str(camera[3]) + "_" + vehicle + frame
+                # print(ct)
+                shutil.copyfile(src_path, dst_path)
+            ct = ct + 1
+    print(ct)
+
+
+def get_query_from_test_images ():
+    test_image_folder_name = "BikePersonDatasetNew/bounding_box_test"
+    test_image_name_list = os.listdir(test_image_folder_name)
+    query_image_folder_name = "BikePersonDatasetNew/query"
+
+    if os.path.exists(query_image_folder_name):
+        print("There exist query folder, are you sure there everything is ok? ")
+        return
+    else:
+        utils.makedir_from_name_list([query_image_folder_name])
+
+    # key: 人id与摄像头id组成的字符串
+    # value：字符串数组，表示一组图片名
+    image_group_dir = {}
+    dir_key_arr = []
+
+    # 图片命名方式： person-id_camera-id_xxxxx.jpg
+    for image_name in test_image_name_list:
+        person_id, camera_id, other_text = image_name.split('_')
+        dir_key = person_id + camera_id
+        if dir_key in image_group_dir:
+            image_group_dir[dir_key].append(image_name)
+        else:
+            dir_key_arr.append(dir_key)
+            temp_arr = [image_name]
+            image_group_dir[dir_key] = temp_arr
+
+    # 遍历 image_group_arr 提取出来想要的照片
+    RAMDOM_SEED = 0
+    for key in dir_key_arr:
+        image_name_arr = image_group_dir[key]
+        # print(image_name_arr)
+        query_image_name = image_name_arr[random.randint(0, len(image_name_arr)-1)]
+        shutil.move(test_image_folder_name + "/" + query_image_name, query_image_folder_name + "/" + query_image_name)
+        # print(query_image_name)
 
 
 # 统计分割后的图片，人体所占的比例，并绘制折线图
