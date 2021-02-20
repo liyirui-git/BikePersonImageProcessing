@@ -21,7 +21,10 @@ CLASS_NUM = 20
 FOLDER_NAME = "./BikePersonDatasetProcess"
 
 
-def seg_person_from_mask(folder_name):
+# 新增一个参数，background_color, 是一个长度为三的数组，分别表示，三个颜色通道
+# 之前使用的是 isk，它对应的 background_color = [197, 215, 20]
+# 后来使用的是 schp，它对应的 background_color = [0, 0, 0]
+def seg_person_from_mask(folder_name, background_color):
 
     img_list = os.listdir(folder_name + "/img")
 
@@ -36,21 +39,22 @@ def seg_person_from_mask(folder_name):
         os.mkdir(seg_other_folder_name)
 
     for img_name in img_list:
-        img = cv2.imread(folder_name + "/img/" + img_name)
+        img_name = img_name.split(".")[0]
+        img = cv2.imread(folder_name + "/img/" + img_name + ".jpg")
         img2 = img.copy()
-        mask = cv2.imread(folder_name + "/mask/" + img_name)
+        mask = cv2.imread(folder_name + "/mask/" + img_name + ".png")
         shape = img.shape
         for i in range(0, shape[0]):
             for j in range(0, shape[1]):
-                d1 = mask[i][j][0] - 198
-                d2 = mask[i][j][1] - 215
-                d3 = mask[i][j][2] - 20
+                d1 = mask[i][j][0] - background_color[0]
+                d2 = mask[i][j][1] - background_color[1]
+                d3 = mask[i][j][2] - background_color[2]
                 d = d1*d1 + d2*d2 + d3 * d3
                 if d < 50: img[i][j] = [0, 0, 0]
                 else: img2[i][j] = [0, 0, 0]
 
-        cv2.imwrite(seg_person_folder_name + "/" + img_name, img)
-        cv2.imwrite(seg_other_folder_name + "/" + img_name, img2)
+        cv2.imwrite(seg_person_folder_name + "/" + img_name + ".png", img)
+        cv2.imwrite(seg_other_folder_name + "/" + img_name + ".png", img2)
 
 
 def seg_upper_body_from_mask(folder_name):
