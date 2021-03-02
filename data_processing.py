@@ -37,7 +37,8 @@ ROOT_PATH = "./BikePersonDatasetProcess"
 # 这里以编号为奇数的作为训练集，编号为偶数的为测试集
 def img_rename_and_concentrating_as_dukemtmcreid():
     source_folder_name = "C:\\Users\\11029\\Documents\\BUAAmaster\\GPdataset\\BikePerson Dataset"
-    subfolder_list = ["cam_1_2", "cam_2_3", "cam_3_5", "cam_4_5", "cam_4_5", "cam_5_6", "cam_6_1"]
+    # subfolder_list = ["cam_1_2", "cam_2_3", "cam_3_5", "cam_4_5", "cam_4_5", "cam_5_6", "cam_6_1"]
+    subfolder_list = ["cam_1_2", "cam_2_3", "cam_3_5", "cam_4_5", "cam_5_6", "cam_6_1"]
     target_folder_name_list = utils.makedir_from_name_list(["BikePersonDatasetNew\\bounding_box_train",
                                                             "BikePersonDatasetNew\\bounding_box_test"])
 
@@ -106,10 +107,10 @@ def img_rename_and_concentrating_as_dukemtmcreid():
     print(ct)
 
 
-def get_query_from_test_images ():
-    test_image_folder_name = "BikePersonDatasetNew/bounding_box_test"
+def get_query_from_test_images(dataset_name):
+    test_image_folder_name = os.path.join(dataset_name, "bounding_box_test")
     test_image_name_list = os.listdir(test_image_folder_name)
-    query_image_folder_name = "BikePersonDatasetNew/query"
+    query_image_folder_name = os.path.join(dataset_name, "query")
 
     if os.path.exists(query_image_folder_name):
         print("There exist query folder, are you sure there everything is ok? ")
@@ -399,3 +400,17 @@ def random_get_img(num, seed=0, fig_show=True):
 #         os.rename(root_path + "/seg/segPerson" + "/" + imgName, root_path + "/seg/segPerson" + "/" + str(ct) + ".jpg")
 #         os.rename(root_path + "/seg/segOther" + "/" + imgName, root_path + "/seg/segOther" + "/" + str(ct) + ".jpg")
 #         ct = ct + 1
+
+def count_initial_dataset_img_number():
+    source_folder_name = "C:\\Users\\11029\\Documents\\BUAAmaster\\GPdataset\\BikePerson Dataset"
+    subfolder_list = ["cam_1_2", "cam_2_3", "cam_3_5", "cam_4_5", "cam_5_6", "cam_6_1"]
+
+    count = 0
+    for subfolder_name in subfolder_list:
+        sub_path = os.path.join(source_folder_name, subfolder_name)
+        for subsubfoler_name in os.listdir(sub_path):
+            subsub_path = os.path.join(sub_path, subsubfoler_name)
+            for sub3foler_name in os.listdir(subsub_path):
+                count = count + len(os.listdir(os.path.join(subsub_path, sub3foler_name)))
+
+    print(count)

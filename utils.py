@@ -96,3 +96,22 @@ def get_origin_name(img_name):
         name_list.append(line.split("\n")[0])
     img_num = int(img_name.split(".")[0]) - 1
     return name_list[img_num]
+
+
+# 传入一个数字，然后对它进行4位扩充，返回一个字符串
+# 例如：
+# 4 -> 0004
+# 123 -> 0123
+# 4444 -> 4444
+def four_bit_num(num):
+    if num >= 10000 or num < 0:
+        exception_info = "Error: the number " + str(num) + "is invalid."
+        raise Exception(exception_info)
+    elif num >= 1000:
+        return str(num)
+    elif num >= 100:
+        return "0"+str(num)
+    elif num >= 10:
+        return "00"+str(num)
+    else:
+        return "000"+str(num)
