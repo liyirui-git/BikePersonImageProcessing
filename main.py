@@ -1,7 +1,5 @@
-import data_processing
-import make_query
 import dataset_patch
-import os
-import segmentation
 
-dataset_patch.dataset_patch(make_query.dataset_name)
+dataset_name = "BikePersonDatasetNew"
+
+dataset_patch.dataset_patch(dataset_name)
