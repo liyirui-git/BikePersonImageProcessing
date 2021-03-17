@@ -1,14 +1,9 @@
 # 所有的压缩文件
 *.zip
 
-# 数据展示
-/img_display/
-# 对应的利用预训练好的语义分割网络得到的结果
-/path_to_predictions_epoch10/
-# 处理的结果
-/selectPicture/
-/selectPicture_backup/
+# 默认不同步所有的文件夹
+/*/
 
-
-/BikePerson-[0-9]*/
-/BikePerson-full/
+# 需要同步的特例
+!/.vscode/
+!/txt/
