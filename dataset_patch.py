@@ -1,4 +1,4 @@
-# 本文件主要是处理之前的数据集将cam_4_5多选入了一遍的bug
+# 本文件作为一个补丁，主要是处理之前的数据集将cam_4_5多选入了一遍的 bug
 import os
 import utils
 import shutil

@@ -115,3 +115,23 @@ def four_bit_num(num):
         return "00"+str(num)
     else:
         return "000"+str(num)
+
+
+def get_all_file_path_in_reid_path_format(dir_path):
+    picture_path_list = []
+    sub_folder_list = ["bounding_box_test", "bounding_box_train", "query"]
+    for sub_folder_name in sub_folder_list:
+        folder_path = os.path.join(dir_path, sub_folder_name)
+        for picture_name in os.listdir(folder_path):
+            picture_path_list.append(os.path.join(folder_path, picture_name))
+    return picture_path_list
+
+
+def get_all_file_name_in_reid_path_format(dir_path):
+    picture_name_list = []
+    sub_folder_list = ["bounding_box_test", "bounding_box_train", "query"]
+    for sub_folder_name in sub_folder_list:
+        folder_path = os.path.join(dir_path, sub_folder_name)
+        for picture_name in os.listdir(folder_path):
+            picture_name_list.append(picture_name)
+    return picture_name_list
