@@ -4,6 +4,7 @@ import cv2
 import utils
 import time
 import imagesize
+
 # 之前在一部分数据集上做操作，这里的值是 "./selectPicture"
 ROOT_PATH = "./BikePersonDatasetProcess"
 
@@ -158,9 +159,9 @@ def plot_face_area_ratio():
 
 # 统计重新使用LIP分割，然后按照fast-reid的格式组织起来的图片，人体所占的比例，并绘制折线图
 # 为了避免重复计算，将每个图片对应的值存在一个文件中
-def plot_segment_area_ratio_and_restore(mask_pic_dir_path="BikePersonDatasetNew-mask-700"):
+def plot_segment_area_ratio_and_restore(mask_pic_dir_path="BikePersonDatasetNew-mask-700", plot=True):
 
-    log_file = open("segment_area_ratio_lip_log_" + str(int(time.time())) + ".txt", "w")
+    log_file = open("txt/segment_area_ratio_log_" + str(int(time.time())) + ".txt", "w")
     picture_path_list = utils.get_all_file_path_in_reid_path_format(mask_pic_dir_path)
 
     value = []
@@ -184,18 +185,19 @@ def plot_segment_area_ratio_and_restore(mask_pic_dir_path="BikePersonDatasetNew-
         log_file.write(str(v)+"\n")
         value.append(v)
         count = count + 1
-        if count % 100 == 0:
-            print(count)
+        utils.progress_bar(count, len(picture_path_list))
 
-    utils.plot_data(value, "statistic-segment-area-ratio-full-LIP.png")
+    if plot:
+        utils.plot_data(value, "statistic-segment-area-ratio-full-LIP.png")
 
 
-# 分视角绘制面试所占比例的折线图
-def plot_segment_area_ratio_angle_from_file(file_path="segment_area_ratio_lip_log_1615553475.txt"):
+# 分视角绘制分割面积所占比例的折线图
+def plot_segment_area_ratio_angle_from_file(file_path="txt/BP700_segment_area_ratio_log.txt"):
     log_file = open(file_path, "r")
     value_side, value_front_back = [], []
+    log_file_lines = log_file.readlines()
     count = 0
-    for line in log_file.readlines():
+    for line in log_file_lines:
         file_name, ratio = line.split(" ")[0], float(line.split(" ")[1])
         width, height = imagesize.get(file_name)
         # 如果是正后视图
@@ -204,8 +206,8 @@ def plot_segment_area_ratio_angle_from_file(file_path="segment_area_ratio_lip_lo
         else:
             value_side.append(ratio)
         count = count + 1
-        if count % 100 == 0:
-            print(count)
+        utils.progress_bar(count, len(log_file_lines))
+
     img_name = "segment_area_ratio_" + str(int(time.time()))
     utils.plot_data(value_side, img_name + "_side.png")
     utils.plot_data(value_front_back, img_name + "_front_back.png")

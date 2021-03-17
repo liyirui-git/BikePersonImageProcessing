@@ -1,14 +1,12 @@
-import random
+import os, random, shutil, re, time
+import cv2, imagesize
 import utils
-import os
-import shutil
-import cv2
 
 ROOT_PATH = "./BikePersonDatasetProcess"
 
-origin_pic_dir_path = "BikePersonDataset-full/BikePersonDataset-full-origin"  # .jpg
-mask_pic_dir_path = "BikePersonDataset-full/BikePersonDataset-full-mask"  # .png
-seg_pic_dir_path = "BikePersonDataset-full/BikePersonDataset-full-seg"  # .png
+origin_pic_dir_path = "BikePerson-full/BikePerson-full-origin"  # .jpg
+mask_pic_dir_path = "BikePerson-full/BikePerson-full-mask"  # .png
+seg_pic_dir_path = "BikePerson-full/BikePerson-full-seg"  # .png
 
 sub_folder_name_list = ["origin", "mask", "seg"]
 reid_folder_name_list = ["bounding_box_train", "bounding_box_test", "query"]
@@ -90,7 +88,7 @@ def create_dataset_as_dukemtmcreid():
 
 
 # 从测试图片中，得到所需要的query图片
-def get_query_from_test_images(dataset_path, seed=0):
+def create_query_from_test_images(dataset_path, seed=0):
     test_image_folder_name = os.path.join(dataset_path, "bounding_box_test")
     test_image_name_list = os.listdir(test_image_folder_name)
     query_image_folder_name = os.path.join(dataset_path, "query")
@@ -130,7 +128,7 @@ def get_query_from_test_images(dataset_path, seed=0):
 # 从完整的数据集中，随机得到一组训练集和测试集id数量都为 n 的图片库
 def create_subdataset(amount=5, seed=0, total_id=4579):
     random.seed(seed)
-    dataset_name = "BikePersonDataset-" + str(amount)
+    dataset_name = "BikePerson-" + str(amount)
     dst_folder_list = []
 
     # 创建对应的数据集的文件结构
@@ -163,6 +161,7 @@ def create_subdataset(amount=5, seed=0, total_id=4579):
     odd_id_list = random.sample(odd_id_list, k=amount)
 
     # 从 odd_id_list 中选取编号，然后去之前的字典中找到对应的图片，复制到对应的文件夹下
+    count = 0
     for id in odd_id_list:
         # 奇数对应的是测试集，偶数对应的是训练集
         id_test_picture_name_list = picture_id_name_map[id]
@@ -217,7 +216,101 @@ def create_subdataset(amount=5, seed=0, total_id=4579):
                 dst_path = os.path.join(dst_folder_list[i], reid_folder_name_list[0])
                 dst_path = os.path.join(dst_path, id_picture_name + ".png")
                 shutil.copyfile(src_path, dst_path)
+        count = count + 1
+        utils.progress_bar(count, len(odd_id_list))
 
+# 构造一个分割效果好的数据集
+# 这里的问题是，如何排布训练集和测试集，因为在一个id下，可能会因为分割质量的问题，丢失一部分图片
+# threshold1: 这是侧视图对应的threshold
+# threshold2: 这是正/后视图对应的threshold
+# separate_ratio: 这是用来区分侧视图和正/后视图的长宽比
+# def create_high_quality_seg_dataset(threshold1, threshold2, separate_ratio=1.3, dataset_prefix="700"):
+#     txt_path = os.path.join("txt", "BP" + dataset_prefix + "_segment_area_ratio_log.txt")
+#     txt_file = open(txt_path, "r")
+#     for line in txt_file.readlines():
+#         file_name, area_ratio = line.split(" ")[0], float(line.split(" ")[1])
+#         width, height = imagesize.get(file_name)
+#         hw_ratio = height/width
+#         path_part1, path_part2 = file_name.split("mask")[0], file_name.split("mask")[1]
+#         seg_path = path_part1 + "seg" + path_part2
+#         # 如果是正后视图
+#         if hw_ratio < 1.3 and area_ratio > threshold1:
+#             # 将这些放到新的数据集的文件夹下
+#
+#         elif hw_ratio > 1.3 and area_ratio > threshold2:
+
+
+# 构造一个掺杂着分割前和分割后图片的数据集
+# threshold1: 这是侧视图对应的threshold
+# threshold2: 这是正/后视图对应的threshold
+# separate_num: 这是用来区分侧视图和正/后视图的长宽比
+# mixed_ratio: 这是用来确定分割后的图片占原图片的比例
+def create_mixed_dataset(threshold1=0.1, threshold2=0.2, separate_num=1.3, mixed_ratio=0.4, seed=0, dataset_num="700"):
+    time_begin = time.time()
+    # 先不管图片质量，直接随机，确定那些图片使用分割后的
+    # 然后真正取那个分割后的图片的时候，再判断一下它的质量，如果质量不好，就不取；质量好，则取该图片的分割
+    txt_path = os.path.join("txt", "BP" + dataset_num + "_segment_area_ratio_log.txt")
+    txt_file = open(txt_path, "r")
+    txt_lines = txt_file.readlines()
+
+    # 建立新的文件夹
+    folder_name = "BikePerson-" + dataset_num
+    mixed_ratio_str = str(mixed_ratio).split(".")[0] + "_" + str(mixed_ratio).split(".")[1]
+    sub_folder_path = os.path.join(folder_name, folder_name+"-mixed-"+mixed_ratio_str)
+    utils.makedir_from_name_list([sub_folder_path])
+    utils.makedir_from_name_list([os.path.join(sub_folder_path, reid_folder_name_list[0]),
+                                  os.path.join(sub_folder_path, reid_folder_name_list[1]),
+                                  os.path.join(sub_folder_path, reid_folder_name_list[2])])
+
+    # 按照比例随机确定那些图片需要被替换
+    random.seed(seed)
+    line_number_list = []
+    num = 0
+    while num < len(txt_lines):
+        line_number_list.append(num)
+        num = num + 1
+    seg_number_list = random.sample(line_number_list, k=int(mixed_ratio*len(txt_lines)))
+    seg_number_map = {}
+    for number in seg_number_list:
+        seg_number_map[number] = 0
+
+    ct_total = 0
+    ct_seg_approx = 0
+    ct_seg_exact = 0
+    for i in range(0, len(txt_lines)):
+        file_name, area_ratio = txt_lines[i].split(" ")[0], float(txt_lines[i].split(" ")[1])
+        width, height = imagesize.get(file_name)
+        hw_ratio = height / width
+        path_part1, path_part2 = file_name.split("mask")[0], file_name.split("mask")[1]
+        seg_path = path_part1 + "seg" + path_part2
+        origin_path = path_part1 + "origin" + path_part2
+        # '[/\\\]' 使用正则表达式，将路径名中的斜杠和反斜杠都作为分割字符
+        path_split_list = re.split('[/\\\]', origin_path)
+        target_path = os.path.join(sub_folder_path, path_split_list[2], path_split_list[3])
+        # 如果图片需要被替换成分割后的图片
+        replace_seg_flag = False
+        if i in seg_number_map:
+            ct_seg_approx = ct_seg_approx + 1
+            # 如果图片的质量高
+            if (hw_ratio < separate_num and area_ratio > threshold1) \
+                    or (hw_ratio > separate_num and area_ratio > threshold2):
+                replace_seg_flag = True
+                ct_seg_exact = ct_seg_exact + 1
+        if replace_seg_flag:
+            shutil.copyfile(seg_path, target_path)
+        else:
+            shutil.copyfile(origin_path, target_path)
+        ct_total = ct_total + 1
+        utils.progress_bar(i+1, len(txt_lines))
+
+    print("total:       " + str(ct_total))
+    print("seg approx:  " + str(ct_seg_approx))
+    print("seg exact:   " + str(ct_seg_exact))
+    time_end = time.time()
+    print("total time:  %.2fs" % (time_end-time_begin))
+
+
+# 计算BikePerson最原始的数据集中有多少张图片
 def count_initial_dataset_img_number():
     source_folder_name = "C:\\Users\\11029\\Documents\\BUAAmaster\\GPdataset\\BikePerson Dataset"
     subfolder_list = ["cam_1_2", "cam_2_3", "cam_3_5", "cam_4_5", "cam_5_6", "cam_6_1"]
@@ -235,12 +328,12 @@ def count_initial_dataset_img_number():
 
 # 获取一些前后视角和侧视角的图片
 def select_view_angle_picture():
-    lwRatio_front_back = 1.9
-    lwRatio_side = 1.1
+    lw_ratio_front_back = 1.9
+    lw_ratio_side = 1.1
 
-    pictureFolderName = ROOT_PATH + "/img"
-    maskFolderName = ROOT_PATH + "/LIP"
-    pictureList = os.listdir(pictureFolderName)
+    picture_folder_name = ROOT_PATH + "/img"
+    mask_folder_name = ROOT_PATH + "/LIP"
+    picture_list = os.listdir(picture_folder_name)
 
     back_front_folder_name = ROOT_PATH + "/back_front"
     side_folder_name = ROOT_PATH + "/side"
@@ -254,18 +347,18 @@ def select_view_angle_picture():
         os.mkdir(side_folder_name + '/mask')
 
     count = 0
-    for picture in pictureList:
-        mask = cv2.imread(maskFolderName + "/" + picture.split(".")[0] + ".png")
-        img = cv2.imread(pictureFolderName + "/" + picture)
+    for picture in picture_list:
+        mask = cv2.imread(mask_folder_name + "/" + picture.split(".")[0] + ".png")
+        img = cv2.imread(picture_folder_name + "/" + picture)
         shape = img.shape
-        lwRatio = shape[0] / shape[1]
+        lw_ratio = shape[0] / shape[1]
 
         # 根据长宽比得到一些前后视角和侧视角的图片
-        if lwRatio <= lwRatio_side:
+        if lw_ratio <= lw_ratio_side:
             cv2.imwrite(side_folder_name + "/mask/" + picture, mask)
             cv2.imwrite(side_folder_name + "/img/" + picture, img)
 
-        if lwRatio >= lwRatio_front_back:
+        if lw_ratio >= lw_ratio_front_back:
             cv2.imwrite(back_front_folder_name + "/mask/" + picture, mask)
             cv2.imwrite(back_front_folder_name + "/img/" + picture, img)
 

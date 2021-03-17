@@ -1,7 +1,6 @@
-import os
+import os, sys
 from matplotlib import pyplot
 import matplotlib.image as mpimg
-
 
 # 创建文件夹
 # folder_name_list: 字符串数组
@@ -18,6 +17,8 @@ def makedir_from_name_list(folder_name_list):
 # out_fig_name: 输出图片的名字
 # 无返回值
 def plot_data(value, out_fig_name):
+    # 新建一个文件夹
+    makedir_from_name_list(["plot"])
     # 绘制折线图时区间采样的个数
     N = 200
     # 绘制图片的大小
@@ -47,7 +48,7 @@ def plot_data(value, out_fig_name):
 
     pyplot.figure(figsize=(S, S))
     pyplot.plot(dataX, dataCalcu)
-    pyplot.savefig(out_fig_name)
+    pyplot.savefig(os.path.join("plot", out_fig_name))
 
     ct = 0
     for d in dataCalcu:
@@ -135,3 +136,22 @@ def get_all_file_name_in_reid_path_format(dir_path):
         for picture_name in os.listdir(folder_path):
             picture_name_list.append(picture_name)
     return picture_name_list
+
+
+def progress_bar(portion, total, length=50):
+    """
+    total 总数据大小，portion 已经传送的数据大小
+    :param portion: 已经接收的数据量
+    :param total: 总数据量
+    :param length: 进度条的长度
+    :return: 接收数据完成，返回True
+    """
+    sys.stdout.write('\r')
+    temp_str = '[%-' + str(length) + 's] %d/%d %.2f%%'
+    count = int(portion * length / total - 1)
+    sys.stdout.write((temp_str % (('-' * count + '>'), portion, total, portion / total * 100)))
+    sys.stdout.flush()
+
+    if portion >= total:
+        sys.stdout.write('\n')
+        return True

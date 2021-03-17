@@ -1,13 +1,6 @@
 # 所有的压缩文件
 *.zip
 
-# 数据样例
-/BikePerson 数据样例/
-# 筛选得到的人骑车的数据集
-/BikePersonDatasetProcess/
-/BikePersonDatasetProcess_eletric/
-/BikePersonDatasetProcess_backup/
-/BikePersonDatasetProcess_eletric_backup/
 # 数据展示
 /img_display/
 # 对应的利用预训练好的语义分割网络得到的结果
@@ -17,12 +10,5 @@
 /selectPicture_backup/
 
 
-/BikePersonDatasetNew/
-/BikePersonDatasetNew-700/
-/BikePersonDatasetNew-without-seg/
-/BikePersonDatasetNew-without-seg-700/
-/BikePersonDatasetNew-mask/
-/BikePersonDatasetNew-mask-700/
-
-/BikePersonDataset-[0-9]*/
-/BikePersonDataset-full/
+/BikePerson-[0-9]*/
+/BikePerson-full/

@@ -39,7 +39,7 @@ def dataset_patch(dataset_name):
 
     if not os.path.exists(new_test_dir_path):
         utils.makedir_from_name_list([new_test_dir_path, new_train_dir_path])
-        f_map = open("old_num_2_new_num.txt", "r")
+        f_map = open("txt/old_num_2_new_num.txt", "r")
         name_map = {}
         for line in f_map.readlines():
             num1, num2 = int(line.split()[0]), int(line.split()[1])

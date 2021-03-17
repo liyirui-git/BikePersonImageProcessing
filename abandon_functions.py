@@ -24,7 +24,7 @@
 #         os.rename(root_path + "/seg/segOther" + "/" + imgName, root_path + "/seg/segOther" + "/" + str(ct) + ".jpg")
 #         ct = ct + 1
 
-# 将 BikePerson 数据集中的数据集集中到同一个文件夹下，并且防止重名的事情发生。
+#### 将 BikePerson 数据集中的数据集集中到同一个文件夹下，并且防止重名的事情发生。
 # def concentrating_img_and_rename():
 #     source_folder_name = "C:\\Users\\11029\\Documents\\BUAAmaster\\GPdataset\\BikePerson Dataset"
 #     subfolder_list = ["cam_1_2", "cam_2_3", "cam_3_5", "cam_4_5", "cam_4_5", "cam_5_6", "cam_6_1"]
