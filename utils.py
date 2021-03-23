@@ -2,6 +2,7 @@ import os, sys
 from matplotlib import pyplot
 import matplotlib.image as mpimg
 
+
 # 创建文件夹
 # folder_name_list: 字符串数组
 # 返回 folder_name_list
@@ -22,48 +23,52 @@ def plot_data(value, out_fig_name):
     # 绘制折线图时区间采样的个数
     N = 200
     # 绘制图片的大小
-    S = 5.12
+    S = 8
 
     # 先求一下最大值跟最小值
-    maxVal = value[0]
-    minVal = value[0]
+    max_val = value[0]
+    min_val = value[0]
     for v in value:
-        if v > maxVal: maxVal = v
-        if v < minVal: minVal = v
+        if v > max_val: max_val = v
+        if v < min_val: min_val = v
 
-    print("max value:" + str(maxVal))
-    print("min value:" + str(minVal))
+    print("max value:" + str(max_val))
+    print("min value:" + str(min_val))
 
-    delta = (maxVal - minVal) / N
+    delta = (max_val - min_val) / N
 
     dataX = []
     dataCalcu = []
     for i in range(0, N + 2):
         dataCalcu.append(0)
-        dataX.append(minVal + i * delta)
+        dataX.append(min_val + i * delta)
 
     for v in value:
-        p = (int)((v - minVal) / delta)
+        p = int((v - min_val) / delta)
         dataCalcu[p] = dataCalcu[p] + 1
 
     pyplot.figure(figsize=(S, S))
     pyplot.plot(dataX, dataCalcu)
     pyplot.savefig(os.path.join("plot", out_fig_name))
-
+    pyplot.show()
     ct = 0
     for d in dataCalcu:
         ct = ct + d
 
-    print("data number: " + str(ct))
+    print("scale of data: " + str(ct))
+    pyplot.close()
 
 
-# 并排显示多组图片
+# 显示多张图片
 # img_name_list: 字符串数组
 # out_fig_name: 输出图片的名字
+# tag_list：图片的文本注释
 # figsize: 显示图片的大小，缺省值为 (12, 9)
+# in_line: 如果值为True，则并排显示，否则，显示在一列上
 # 无返回值
-def img_display(img_name_list, out_fig_name, tag_list=None, fig_show=True, fig_size=(12, 9)):
-    folder_name = "img_display/"
+def img_display(img_name_list, out_fig_name,
+                tag_list=None, in_line=True, fig_show=True, fig_size=(12, 9), folder_name="img_display/"):
+
     if tag_list is None:
         tag_list = []
     pyplot.figure(figsize=fig_size)
@@ -74,7 +79,10 @@ def img_display(img_name_list, out_fig_name, tag_list=None, fig_show=True, fig_s
     length = len(img_array)
 
     for i in range(0, length):
-        pyplot.subplot(1, length, i + 1)
+        if in_line:
+            pyplot.subplot(1, length, i + 1)
+        else:
+            pyplot.subplot(length, 1, i+1)
         if i < len(tag_list):
             pyplot.text(20, -30, tag_list[i], fontdict={'size': 20})
         pyplot.imshow(img_array[i])
@@ -84,7 +92,7 @@ def img_display(img_name_list, out_fig_name, tag_list=None, fig_show=True, fig_s
     pyplot.savefig(folder_name + out_fig_name)
     if fig_show:
         pyplot.show()
-
+    pyplot.close()
 
 # 将以数字序号命名的，反映射到其原本的名字
 # img_name: 字符串
@@ -155,3 +163,14 @@ def progress_bar(portion, total, length=50):
     if portion >= total:
         sys.stdout.write('\n')
         return True
+
+
+# 写一个函数，在创建文件的时候，如果该文件存在，将该文件备份一下
+# filename: 文件名，不带格式后缀
+# fileformat: 文件格式，即后缀，例如，".txt"
+# mode: 访问模式，例如，"w"，"r"
+def open_file(filename, fileformat, mode):
+    if os.path.exists(filename+fileformat):
+        return open_file(filename+'_new', fileformat, mode)
+    else:
+        return open(filename+fileformat, mode)

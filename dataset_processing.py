@@ -14,15 +14,25 @@ reid_folder_name_list = ["bounding_box_train", "bounding_box_test", "query"]
 
 # 将 Bike Person 的数据整理成 DukeMTMC-reID 的数据格式
 # 这里以编号为奇数的作为测试集，编号为偶数的为训练集
-def create_dataset_as_dukemtmcreid():
+# copyfile == True 才向新的地址复制图片
+def create_dataset_as_dukemtmcreid(copyfile=False):
     source_folder_name = "C:\\Users\\11029\\Documents\\BUAAmaster\\GPdataset\\BikePerson Dataset"
     # 出错的地方，将"cam_4_5"多写了一遍！
     # subfolder_list = ["cam_1_2", "cam_2_3", "cam_3_5", "cam_4_5", "cam_4_5", "cam_5_6", "cam_6_1"]
     subfolder_list = ["cam_1_2", "cam_2_3", "cam_3_5", "cam_4_5", "cam_5_6", "cam_6_1"]
+    utils.makedir_from_name_list(["BikePersonDatasetNew"])
     target_folder_name_list = utils.makedir_from_name_list(["BikePersonDatasetNew\\bounding_box_train",
                                                             "BikePersonDatasetNew\\bounding_box_test"])
 
-    ct = 1
+    num_to_name_txt = "txt/num_2_name.txt"
+    if not os.path.exists(num_to_name_txt):
+        num_to_name_file = open(num_to_name_txt, "w")
+    else:
+        print("[Error] There exist txt/num_2_name.txt, do some check please!")
+        return
+
+    id_count = 1
+    img_count = 0
     subsubfolder_name = "Eletric"
     for subfolder_name in subfolder_list:
         temp_path = source_folder_name + "\\" + subfolder_name + "\\" + subsubfolder_name
@@ -34,15 +44,18 @@ def create_dataset_as_dukemtmcreid():
                 pic_file_name_split = pic_file_name.split('_')
                 camera, vehicle, frame = pic_file_name_split[0], pic_file_name_split[1], pic_file_name_split[2]
                 src_path = subtemp_path + "\\" + pic_file_name
-                if ct % 2 == 0:
+                if id_count % 2 == 0:
                     target_folder_name = target_folder_name_list[0]
                 else:
                     target_folder_name = target_folder_name_list[1]
-                dst_path = target_folder_name + "\\" + str(ct).zfill(4) + "_c" + str(camera[3]) + "_" + vehicle + frame
-                # print(ct)
-                shutil.copyfile(src_path, dst_path)
-            ct = ct + 1
-    print(ct)
+                dst_path = target_folder_name + "\\" + str(id_count).zfill(4) + "_c" + str(camera[3]) + "_" + vehicle + frame
+                if copyfile:
+                    shutil.copyfile(src_path, dst_path)
+                img_count = img_count+1
+            utils.progress_bar(id_count, 4579)
+            num_to_name_file.write(str(id_count) + " "+ subtemp_path + "\n")
+            id_count = id_count + 1
+    print("  Eletric id end:" + str(id_count-1))
 
     subsubfolder_name = "Bike"
     for subfolder_name in subfolder_list:
@@ -55,15 +68,18 @@ def create_dataset_as_dukemtmcreid():
                 pic_file_name_split = pic_file_name.split('_')
                 camera, vehicle, frame = pic_file_name_split[0], pic_file_name_split[1], pic_file_name_split[2]
                 src_path = subtemp_path + "\\" + pic_file_name
-                if ct % 2 == 0:
+                if id_count % 2 == 0:
                     target_folder_name = target_folder_name_list[0]
                 else:
                     target_folder_name = target_folder_name_list[1]
-                dst_path = target_folder_name + "\\" + str(ct).zfill(4) + "_c" + str(camera[3]) + "_" + vehicle + frame
-                # print(ct)
-                shutil.copyfile(src_path, dst_path)
-            ct = ct + 1
-    print(ct)
+                dst_path = target_folder_name + "\\" + str(id_count).zfill(4) + "_c" + str(camera[3]) + "_" + vehicle + frame
+                if copyfile:
+                    shutil.copyfile(src_path, dst_path)
+                img_count = img_count + 1
+            utils.progress_bar(id_count, 4579)
+            num_to_name_file.write(str(id_count) + " "+ subtemp_path + "\n")
+            id_count = id_count + 1
+    print("  Bike id end:" + str(id_count-1))
 
     subsubfolder_name = "Motor"
     for subfolder_name in subfolder_list:
@@ -76,16 +92,19 @@ def create_dataset_as_dukemtmcreid():
                 pic_file_name_split = pic_file_name.split('_')
                 camera, vehicle, frame = pic_file_name_split[0], pic_file_name_split[1], pic_file_name_split[2]
                 src_path = subtemp_path + "\\" + pic_file_name
-                if ct % 2 == 0:
+                if id_count % 2 == 0:
                     target_folder_name = target_folder_name_list[0]
                 else:
                     target_folder_name = target_folder_name_list[1]
-                dst_path = target_folder_name + "\\" + str(ct).zfill(4) + "_c" + str(camera[3]) + "_" + vehicle + frame
-                # print(ct)
-                shutil.copyfile(src_path, dst_path)
-            ct = ct + 1
-    print(ct)
-
+                dst_path = target_folder_name + "\\" + str(id_count).zfill(4) + "_c" + str(camera[3]) + "_" + vehicle + frame
+                if copyfile:
+                    shutil.copyfile(src_path, dst_path)
+                img_count = img_count + 1
+            utils.progress_bar(id_count, 4579)
+            num_to_name_file.write(str(id_count) + " "+ subtemp_path + "\n")
+            id_count = id_count + 1
+    print("  Motor id end:" + str(id_count-1))
+    print("Total images: " + str(img_count))
 
 # 从测试图片中，得到所需要的query图片
 def create_query_from_test_images(dataset_path, seed=0):
@@ -363,4 +382,4 @@ def select_view_angle_picture():
             cv2.imwrite(back_front_folder_name + "/img/" + picture, img)
 
         count = count + 1
-        if count % 100 == 0: print(count)
+        utils.progress_bar(count, len(picture_list))
