@@ -274,8 +274,9 @@ def create_mixed_dataset(threshold1=0.1, threshold2=0.2, separate_num=1.3, mixed
 
     # 建立新的文件夹
     folder_name = "BikePerson-" + dataset_num
-    mixed_ratio_str = str(mixed_ratio).split(".")[0] + "_" + str(mixed_ratio).split(".")[1]
-    sub_folder_path = os.path.join(folder_name, folder_name+"-mixed-"+mixed_ratio_str)
+    sub_folder_path = os.path.join(folder_name, folder_name+"-mixed-"+utils.float_2_str(mixed_ratio)
+                                                                    + "-" + utils.float_2_str(threshold1)
+                                                                    + "-" + utils.float_2_str(threshold2))
     utils.makedir_from_name_list([sub_folder_path])
     utils.makedir_from_name_list([os.path.join(sub_folder_path, reid_folder_name_list[0]),
                                   os.path.join(sub_folder_path, reid_folder_name_list[1]),
@@ -383,3 +384,5 @@ def select_view_angle_picture():
 
         count = count + 1
         utils.progress_bar(count, len(picture_list))
+
+

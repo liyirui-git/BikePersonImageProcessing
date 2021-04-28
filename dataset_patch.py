@@ -1,4 +1,4 @@
-# 本文件作为一个补丁，主要是处理之前的数据集将cam_4_5多选入了一遍的 bug
+# 本代码作为一个补丁，主要是提供一些函数处理之前的数据集将cam_4_5多选入了一遍的 bug
 import os
 import utils
 import shutil
@@ -60,3 +60,34 @@ def dataset_patch(dataset_name):
                     shutil.copyfile(src_path, dst_path)
         print("total: " + str(count))
 
+
+# 将合并到test中的原本属于query的图片再提取出来
+def rebuild_query_images():
+    # 先去到origin下，看看query中的图片是哪些
+    origin_dataset_path_dir = "BikePerson-700/BikePerson-700-origin"
+    recolor_dataset_path_dir = "BikePerson-700/BikePerson-700-recolor"
+
+    utils.makedir_from_name_list([os.path.join(recolor_dataset_path_dir, "query")])
+
+    query_image_dir = {}
+    origin_query_image_path = os.path.join(origin_dataset_path_dir, "query")
+    ct = 0
+    for name in os.listdir(origin_query_image_path):
+        name = name.split(".png")[0]
+        num = int(name.split("_")[0])
+        if num not in query_image_dir:
+            query_image_dir[num] = []
+        query_image_dir[num].append(name)
+        ct = ct + 1
+        utils.progress_bar(ct, len(os.listdir(origin_query_image_path)))
+
+    recolor_test_image_path = os.path.join(recolor_dataset_path_dir, "bounding_box_test")
+    ct = 0
+    for name in os.listdir(recolor_test_image_path):
+        num = int(name.split("_")[0])
+        if name.find(query_image_dir[num][0]) != -1 or name.find(query_image_dir[num][1]) != -1:
+            src = os.path.join(recolor_test_image_path, name)
+            dst = os.path.join(recolor_dataset_path_dir, "query", name)
+            shutil.move(src, dst)
+        ct = ct + 1
+        utils.progress_bar(ct, len(os.listdir(recolor_test_image_path)))

@@ -1,4 +1,4 @@
-import os, sys
+import os, sys, json, shutil
 from matplotlib import pyplot
 import matplotlib.image as mpimg
 
@@ -174,3 +174,29 @@ def open_file(filename, fileformat, mode):
         return open_file(filename+'_new', fileformat, mode)
     else:
         return open(filename+fileformat, mode)
+
+
+def float_2_str(f):
+    return str(f).split(".")[0] + "_" + str(f).split(".")[1]
+
+
+def read_annotations_list_from_json(file_path):
+    json_file = open(file_path, 'r')
+    json_content = json_file.readline()
+    annotations_list = json.loads(json_content)
+    return annotations_list
+
+
+# 把后缀名字从.png变成.jpg
+def change_name_from_png_2_jpg(dir_path):
+    ct = 0
+    for file_name in os.listdir(dir_path):
+        src = os.path.join(dir_path, file_name)
+        temp_list = file_name.split(".")
+        if len(temp_list) != 2:
+            print("[Error]!")
+            return
+        dst = os.path.join(dir_path, temp_list[0]+".jpg")
+        shutil.move(src, dst)
+        ct = ct + 1
+        progress_bar(ct, len(os.listdir(dir_path)))
