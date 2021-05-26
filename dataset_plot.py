@@ -213,4 +213,20 @@ def plot_segment_area_ratio_angle_from_file(file_path="txt/BP700_segment_area_ra
     utils.plot_data(value_front_back, img_name + "_front_back.png")
 
 
+def plot_image_area_distribution(file_path="BikePerson-full/BikePerson-full-origin"):
+    value = []
+    count = 0
+    total = 91517
+    subfolder_name_list = ["bounding_box_test", "bounding_box_train", "query"]
+    for subfolder_name in subfolder_name_list:
+        folder_path = os.path.join(file_path, subfolder_name)
+        image_name_list = os.listdir(folder_path)
+        for image_name in image_name_list:
+            width, height = imagesize.get(os.path.join(folder_path, image_name))
+            area = width*height
+            value.append(area)
+            count = count + 1
+            utils.progress_bar(count, total)
 
+    diagram_name = "area_ratio_distribution_" + str(int(time.time()))
+    utils.plot_data(value, diagram_name + ".png", set_range=True, Range=[0, 65000])

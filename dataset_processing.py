@@ -346,6 +346,47 @@ def count_initial_dataset_img_number():
     print(count)
 
 
+def create_camera12_bike_for_test():
+    # 查 txt/person_id_2_origin_path.txt知道的
+    person_id_range = [318, 373]
+    # 训练集的位置
+    bp_700_origin_dataset_path = "BikePerson-700/BikePerson-700-origin"
+    cam12_bike_dateset_path = "BikePerson-700/BikePerson-700-cam12-bike"
+    utils.makedir_from_name_list([cam12_bike_dateset_path])
+    utils.makedir_from_name_list([os.path.join(cam12_bike_dateset_path, reid_folder_name_list[0])])
+    utils.makedir_from_name_list([os.path.join(cam12_bike_dateset_path, reid_folder_name_list[1])])
+    # 完整的数据集位置
+    full_dataset_path = "BikePerson-full/BikePerson-full-origin"
+    full_dataset_file_path_list = utils.get_all_file_path_in_reid_path_format(full_dataset_path)
+    # 将该编号的图片作为测试集
+    for file_path in full_dataset_file_path_list:
+        if file_path.find("bike") != -1:
+            file_name = file_path.split("\\")[-1]
+            person_id = int(file_path[-20:-16])
+            if person_id_range[0] <= person_id <= person_id_range[1]:
+                src_path = file_path
+                dst_path = os.path.join(cam12_bike_dateset_path, reid_folder_name_list[1], file_name)
+                shutil.copyfile(src_path, dst_path)
+    print("create bounding_box_test!")
+    # 从BikePerson-700-orgin获取训练集
+    bp_700_origin_train_path = os.path.join(bp_700_origin_dataset_path, "bounding_box_train")
+    for file_name in os.listdir(bp_700_origin_train_path):
+        file_path = os.path.join(bp_700_origin_train_path, file_name)
+        # 跳过这些被放到测试集中的文件
+        flag = True
+        if file_path.find("bike") != -1:
+            if int(file_path[-20:-16]) > person_id_range[1] or int(file_path[-20:-16]) < person_id_range[0]:
+                flag = False
+        if True:
+            src_path = file_path
+            dst_path = os.path.join(cam12_bike_dateset_path, reid_folder_name_list[0], file_name)
+            shutil.copyfile(src_path, dst_path)
+    print("create bounding_box_train!")
+    # 构造query
+    create_query_from_test_images(cam12_bike_dateset_path)
+    print("create query!")
+
+
 # 获取一些前后视角和侧视角的图片
 def select_view_angle_picture():
     lw_ratio_front_back = 1.9
