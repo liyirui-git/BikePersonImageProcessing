@@ -7,6 +7,35 @@ import imagesize
 import json
 import numpy as np
 
+# AlphaPose中提供的点和连接方式，l_pair p_color line_color 来自 AlphaPose/alphapose/utils/vis.py 的 vis_frame 函数
+alphapose_l_pair = [(0, 1), (0, 2), (1, 3), (2, 4),  # Head
+                    (5, 6), (5, 7), (7, 9), (6, 8), (8, 10),
+                    (17, 11), (17, 12),  # Body
+                    (11, 13), (12, 14), (13, 15), (14, 16)]
+alphapose_p_color = [(0, 255, 255), (0, 191, 255), (0, 255, 102), (0, 77, 255), (0, 255, 0),
+                     # Nose, LEye, REye, LEar, REar
+                     (77, 255, 255), (77, 255, 204), (77, 204, 255), (191, 255, 77), (77, 191, 255), (191, 255, 77),
+                     # LShoulder, RShoulder, LElbow, RElbow, LWrist, RWrist
+                     (204, 77, 255), (77, 255, 204), (191, 77, 255), (77, 255, 191), (127, 77, 255), (77, 255, 127),
+                     (0, 255, 255)]  # LHip, RHip, LKnee, Rknee, LAnkle, RAnkle, Neck
+alphapose_line_color = [(0, 215, 255), (0, 255, 204), (0, 134, 255), (0, 255, 50),
+                        (77, 255, 222), (77, 196, 255), (77, 135, 255), (191, 255, 77), (77, 255, 77),
+                        (77, 222, 255), (255, 156, 127),
+                        (0, 127, 255), (255, 127, 77), (0, 77, 255), (255, 77, 36)]
+
+# 为了superpixel分割新增的连接方式
+superpixel_l_pair = [(0, 1), (0, 2), (1, 3), (2, 4), # Head
+                     (5, 6), (5, 7), (7, 9), (6, 8), (8, 10),
+                     (17, 11), (17, 12),  # Body
+                     (11, 13), (12, 14), (13, 15), (14, 16),
+                     (0, 17), (1, 17), (2, 17)]
+
+superpixel_line_color = [(0, 215, 255), (0, 255, 204), (0, 134, 255), (0, 255, 50),
+                         (77, 255, 222), (77, 196, 255), (77, 135, 255), (191, 255, 77), (77, 255, 77),
+                         (77, 222, 255), (255, 156, 127),
+                         (0, 127, 255), (255, 127, 77), (0, 77, 255), (255, 77, 36),
+                         (255, 255, 255), (255, 255, 255), (255, 255, 255)]
+
 
 class KeyPointDetection:
     dataset_folder_path = ""
@@ -66,24 +95,13 @@ class KeyPointDetection:
                 cv2.imshow("img", img)
                 cv2.waitKey(0)
 
-    def paint_pose_on_images(self, image_name, cv_img=None, threshold=0, thickness=6):
+    def paint_pose_on_images(self, image_name, cv_img=None, threshold=0.0, thickness=6, method="alphapose"):
         thinkness = min(thickness, 6)
 
-        # l_pair p_color line_color 来自 AlphaPose/alphapose/utils/vis.py 的 vis_frame 函数
-        l_pair = [(0, 1), (0, 2), (1, 3), (2, 4),  # Head
-                  (5, 6), (5, 7), (7, 9), (6, 8), (8, 10),
-                  (17, 11), (17, 12),  # Body
-                  (11, 13), (12, 14), (13, 15), (14, 16)]
-        p_color = [(0, 255, 255), (0, 191, 255), (0, 255, 102), (0, 77, 255), (0, 255, 0),
-                   # Nose, LEye, REye, LEar, REar
-                   (77, 255, 255), (77, 255, 204), (77, 204, 255), (191, 255, 77), (77, 191, 255), (191, 255, 77),
-                   # LShoulder, RShoulder, LElbow, RElbow, LWrist, RWrist
-                   (204, 77, 255), (77, 255, 204), (191, 77, 255), (77, 255, 191), (127, 77, 255), (77, 255, 127),
-                   (0, 255, 255)]  # LHip, RHip, LKnee, Rknee, LAnkle, RAnkle, Neck
-        line_color = [(0, 215, 255), (0, 255, 204), (0, 134, 255), (0, 255, 50),
-                      (77, 255, 222), (77, 196, 255), (77, 135, 255), (191, 255, 77), (77, 255, 77),
-                      (77, 222, 255), (255, 156, 127),
-                      (0, 127, 255), (255, 127, 77), (0, 77, 255), (255, 77, 36)]
+        if method == "alphapose":
+            l_pair, p_color, line_color = alphapose_l_pair, alphapose_p_color, alphapose_line_color
+        else:
+            l_pair, p_color, line_color = superpixel_l_pair, alphapose_p_color, superpixel_line_color
 
         # 如果没本身这张图片没检测到人体，直接返回
         if not self.is_image_name_detect_annotation(image_name):
@@ -114,17 +132,36 @@ class KeyPointDetection:
             body_keypoints.append(min(body_keypoints[5 * 3 + 2], body_keypoints[5 * 3 + 2]))  # 置信度
 
             # 绘制关键点
-            for i in range(18):
+            for i in range(len(p_color)):
                 r = 1 + int(thickness/3)
                 cv2.circle(cv_img, (int(body_keypoints[i * 3]), int(body_keypoints[i * 3 + 1])), r, color=p_color[i],
                            thickness=-1)
             # 绘制链接线
-            for i in range(15):
+            for i in range(len(line_color)):
                 point1 = (int(body_keypoints[l_pair[i][0] * 3]), int(body_keypoints[l_pair[i][0] * 3 + 1]))
                 point2 = (int(body_keypoints[l_pair[i][1] * 3]), int(body_keypoints[l_pair[i][1] * 3 + 1]))
                 cv2.line(cv_img, point1, point2, color=line_color[i], thickness=thickness)
 
         return cv_img
+
+    def get_skeleton_matrix(self, image_name, show=False, threshold=0, thickness=1):
+        img = self.paint_pose_on_images(image_name=image_name, threshold=threshold,
+                                        thickness=thickness, method="superpixel")
+        skeleton_matrix = []
+        image_path = self.img_name_path_dir[image_name]
+        [image_width, image_height] = imagesize.get(image_path)
+        if show:
+            cv2.imshow("skeleton", img)
+            cv2.waitKey()
+        for i in range(image_height):
+            line = []
+            for j in range(image_width):
+                if img[i][j][0] != 0 or img[i][j][1] != 0 or img[i][j][2] != 0:
+                    line.append(1)
+                else:
+                    line.append(0)
+            skeleton_matrix.append(line)
+        return skeleton_matrix
 
     # 当前函数缺少置信度的阈值，所以结果可能有点乱
     def get_black_background_picture(self, threshold=0.35, out_img_size=(128, 128)):
