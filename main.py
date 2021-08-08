@@ -1,3 +1,9 @@
+'''
+Author: Li, Yirui
+Date: 2021-07-26
+Description: 
+FilePath: /liyirui/PycharmProjects/BikePersonImageProcessing/main.py
+'''
 import random
 
 import dataset_plot
@@ -6,7 +12,7 @@ import dataset_processing
 import superpixel_segment
 import keypoint_detection
 from superpixel_segment import SuperPixelSegmentation
-import market1501
+from keypoint_to_angle import Keypoint2Angle
 from result_analyse import ResultAnalyse
 import utils
 
