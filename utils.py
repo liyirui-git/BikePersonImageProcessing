@@ -248,3 +248,44 @@ def change_name_from_png_2_jpg(dir_path):
 def show_npy_file(filepath):
     npy_data = numpy.load(filepath)
     print(npy_data.shape)
+
+def dic_to_string(dictionary):
+    key_list = list(dictionary.keys())
+    dic_str = ""
+    for key in key_list:
+        dic_str = dic_str + str(key) + ": " + str(dictionary[key]) + "\n"
+    return dic_str
+
+def color_print(message, color='red'):
+    '''
+    message: 要打印的消息
+    color: 不区分大小写
+           'red' or 'r' or 'error' 为红色，
+           'green' or 'g' or 'G' 为绿色
+           ...
+    '''
+    color = color.lower()
+    suffix = "\033[0m"
+    if color == "red" or color == 'r' or color=="error":
+        prefix = "\033[31m"
+    elif color == "green" or color == 'g':
+        prefix = "\033[32m"
+    elif color == "yellow" or color == 'y' or color=="warning":
+        prefix = "\033[33m"
+    elif color == "blue" or color == 'b':
+        prefix = "\033[34m"
+    elif color == "fuchsia" or color == 'f':    # 紫红色
+        prefix = "\033[35m"
+    elif color == "cyan" or color == 'c':       # 青色
+        prefix = "\033[36m"
+    elif color == "white" or color == 'w':
+        prefix = "\033[37m"
+    elif color == "black" or color == "black":
+        prefix = ""
+        suffix = ""
+    else:
+        color_print("[Warning] Uncorrect color name in utils.color_print().", color="warning")
+        prefix = "\033[38m" 
+    
+    print(prefix + message + suffix)
+    

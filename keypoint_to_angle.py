@@ -1,11 +1,10 @@
 '''
 Author: Li, Yirui
 Date: 2021-08-08
-Description: transform human pose like OpenPose format or AlphaPose format to angle size
+Description: transform human pose like OpenPose format to angle size
 FilePath: /liyirui/PycharmProjects/BikePersonImageProcessing/keypoint_to_angle.py
 '''
-
-from multiprocessing import set_forkserver_preload
+# public lib
 import os
 import glob
 import json
@@ -15,12 +14,14 @@ import numpy as np
 import math
 import imagesize  # https://github.com/shibukawa/imagesize_py
 
+# my lib
 import utils
+from mylog import MyLog
 
+# some global varible
 DEBUG = True
-glb_dataset_path = "/home/liyirui/PycharmProjects/dataset"
-glb_dataset_name = "BikePerson-700"
-glb_output_path = "/home/liyirui/PycharmProjects/dataset/keypoint2angle"
+MODE = 'dml_ped'  # 'bikeperson', 'dml_ped'
+
 
 class Keypoint2Angle:
     pose_dir_list = ["bounding_box_pose_train", "bounding_box_pose_test", "query_pose"]
@@ -30,10 +31,6 @@ class Keypoint2Angle:
                        "right_hip":9, "right_knee":10, "right_ankle":11, "left_hip":12, 
                        "left_knee":13, "left_ankle":14, "right_eye":15, "left_eye":16, 
                        "right_ear":17, "left_ear": 18}
-    alphapose_kp_list = ["nose", "left_eye", "right_eye", "left_ear", "right_ear",
-                         "left_shoulder", "right_shoulder", "left_elbow", "right_elbow",
-                         "left_wrist", "right_wrist", "left_hip", "right_hip",
-                         "left_knee", "right_knee", "left_ankle", "right_ankle", "neck"]
     
     def __init__(self, dataset_path, dataset_name, output_path, format='openpose'):
         self.dataset_path = dataset_path
@@ -41,18 +38,22 @@ class Keypoint2Angle:
         self.format = format
         self.output_path = output_path
         if os.path.exists(self.output_path):
+            shutil.rmtree(self.output_path)
+        if os.path.exists(self.output_path + ".zip"):
             os.remove(self.output_path + ".zip")
-        else:
+        if not os.path.exists(self.output_path):
             os.mkdir(self.output_path)
         
-
     def openpose_dataloader(self):
         '''
-        output:
+        return:
             image_name = []
             pose_data_dir = [{'json_path': str,
+                              'image_name': str,
                               'image_path': str,
                               'image_size': {'width': int, 'height': int},
+                              'rendered_image_path': str,
+                              'heatmaps_path': str,
                               'pose': [float []] },
                             ]
         '''
@@ -74,27 +75,33 @@ class Keypoint2Angle:
         pose_data_dir = {}
         image_name_list = []
         for index in range(3):
-            # 在debug模式下，只处理query中的图片
-            if DEBUG:
+            if DEBUG:   # In debug mode，only processing image in 'query'
                 index = 2
             pose_folder_path = os.path.join(self.dataset_path, self.dataset_name, self.pose_dir_list[index])
             pose_json_files = glob.glob(pose_folder_path + "/*_keypoints.json")
             total_len = len(pose_json_files)
             partition = 0
             for pose_json_file_path in pose_json_files:
-                image_name_pattern = re.compile(r'\/([0-9]+_c[0-9]+_[a-z]+[0-9]+)_keypoints.json')
+                image_name_pattern = re.compile(r'\/([0-9]+_c[0-9]+_[a-z,0-9]+)_keypoints.json')
                 image_name = image_name_pattern.search(pose_json_file_path).groups()[0]
+                rendered_image_path = os.path.join(pose_folder_path, image_name + "_rendered.png")
+                heatmaps_path = os.path.join(pose_folder_path, image_name + "_pose_heatmaps.png")
                 image_folder_path = os.path.join(self.dataset_path, self.dataset_name, self.reid_dir_list[index])
                 image_path = os.path.join(image_folder_path, image_name + ".png")
+                if not os.path.exists(image_path):
+                    image_path = os.path.join(image_folder_path, image_name + ".jpg")
                 image_width, image_height = imagesize.get(image_path)
                 pose_json_file = open(pose_json_file_path, "r")
                 pose = json.load(pose_json_file)
                 pose_json_file.close()
                 image_name_list.append(image_name)
                 pose_data_dir[image_name] = {'json_path': pose_json_file_path, 
+                                             'image_name': image_name,
                                              'image_path': image_path,
                                              'image_size': {'width': image_width,
                                                             'height': image_height},
+                                             'rendered_image_path': rendered_image_path,
+                                             'heatmaps_path': heatmaps_path,
                                              'pose': []
                                             }
                 for i in range(0, len(pose['people'])):
@@ -106,81 +113,209 @@ class Keypoint2Angle:
                 break
         return image_name_list, pose_data_dir
 
-    def calculator(self, pose, image_size, part_name="shoulder", 
-                    confi_threshold=0.7, hw_ratio_threshold=1.3):
+    def vector_included_angle(self, v1, v2):
         '''
+        detail:
+            calculate vector included angle of v1 and v2
+        args:
+            v1, v2 = [x1,x2], [y1, y2]
+        return:
+            theta
+        '''
+        if v1[0] == 0 and v1[1] > 0: theta = 0.0
+        elif v1[0] == 0 and v1[1] < 0: theta = 180.0
+        else:
+            # 弧度制theta
+            theta = math.acos( np.dot(v1, v2) 
+                                / (np.linalg.norm(v1, ord=2) * np.linalg.norm(v2, ord=2)))
+            # 角度制theta
+            theta = theta * 180 / np.pi
+            if v1[0] > 0: theta
+            else: theta = 360.0-theta
+        return theta
+
+    def get_keypoint_position(self, pose, keypoint_name):
+        '''
+        detail:
+            get keypoint position and confidence from given pose array
+        args:
+            pose -- float[], a array of pose info
+            keypoint_name -- str, a name of keypoint which is a key in self.openpose_kp_dir 
+        return:
+            pnt -- (float, float), point position 
+            confi -- float, confidence of this keypoint 
+        '''
+        pnt = (pose[3*(self.openpose_kp_dir[keypoint_name]-1)], 
+               pose[3*(self.openpose_kp_dir[keypoint_name]-1) + 1])
+        confi = pose[3*(self.openpose_kp_dir[keypoint_name]-1) + 2]
+        
+        return pnt, confi
+
+    def get_np_vector_from_pnt(self, p1, p2):
+        '''
+        detail:
+            return a numpy array format vector, point from point2 to point1
+        input:
+            v1, v2 -- (float, float)
+        return:
+            numpy array
+        '''
+        return np.asarray([p2[0]-p1[0], p2[1]-p1[1]])
+
+    def shoulder_hip_calculator(self, pose):
+        '''
+        detail:
+            Calculating the angle between the vector which conect left and right shoulder,
+            and the vector which in the middle of two vetors, first connect neck and left hip, 
+            second connect neck and right hip.
         input:
             pose -- a float array
-            image_size -- a dic {'width': int, 'height': int}
+        return:
+            theta -- a float varible
+            confi -- a float varible 
+        '''
+        l_shu_pnt, l_shu_confi = self.get_keypoint_position(pose, "left_shoulder")
+        r_shu_pnt, r_shu_confi = self.get_keypoint_position(pose, "right_shoulder")
+        l_hip_pnt, l_hip_confi = self.get_keypoint_position(pose, "left_hip")
+        r_hip_pnt, r_hip_confi = self.get_keypoint_position(pose, "right_hip")
+        neck_pnt, neck_confi = self.get_keypoint_position(pose, "neck")
+        
+        confi = min(l_shu_confi, r_shu_confi, l_hip_confi, r_hip_confi, neck_confi)
+
+        v_i = self.get_np_vector_from_pnt(l_shu_pnt, r_shu_pnt)
+        v_left_down = self.get_np_vector_from_pnt(l_hip_pnt, neck_pnt)
+        v_right_down = self.get_np_vector_from_pnt(r_hip_pnt, neck_pnt)
+        v_down = v_left_down + v_right_down
+
+        return self.vector_included_angle(v_i, v_down), confi
+
+    def shoulder_calculator(self, pose):
+        '''
+        detail:
+            Calculating the angle between the vector which conecct left and right shoulder, 
+            and the vector which from top to buttom.
+        input:
+            pose -- a float array
         return:
             theta -- a float varible
             confi -- a float varible
         '''
-        # 先用长宽比判断，低于阈值，则判断为侧视图，直接返回
-        if image_size['height'] / image_size['width'] < hw_ratio_threshold:
-            return 180, 0
         
-        l_index = self.openpose_kp_dir["left_"+part_name]-1
-        r_index = self.openpose_kp_dir["right_"+part_name]-1
-        l_point = (pose[3*l_index], pose[3*l_index+1])
-        l_confi = pose[3*l_index+2]
-        r_point = (pose[3*r_index], pose[3*r_index+1])
-        r_confi = pose[3*r_index+2]
+        l_point, l_confi = self.get_keypoint_position(pose, "left_shoulder")
+        r_point, r_confi = self.get_keypoint_position(pose, "right_shoulder")
+        confi = min(l_confi, r_confi)
 
-        v_i = np.asarray([r_point[0] - l_point[0], 
-                            r_point[1] - l_point[1]])
+        v_i = self.get_np_vector_from_pnt(l_point, r_point)
         v_vetical = np.asarray([0, 1])
 
-        # 置信度如果低于阈值，直接根据向量的x坐标的正负返回结果
-        confi = min(l_confi, r_confi)
-        if confi < confi_threshold:
-            if v_i[0] > 0: return 90, 0
-            else: return 270, 0
+        return self.vector_included_angle(v_i, v_vetical), confi
+    
+    def make_args(self, args):
+        if 'angle_threshold' not in args:
+            args['angle_threshold'] = 15
+        if 'hw_ratio_threshold' not in args: 
+            args['hw_ratio_threshold']=1.3
+        if 'confi_threshold' not in args:
+            args['confi_threshold']=0.7
+        if 'calculator' not in args:
+            args['calculator'] = "shoulder_calculator"
+        
+        return args
 
-        # 置信度和长宽比都高于阈值
-        if v_i[0] == 0 and v_i[1] > 0: theta = 0.0
-        elif v_i[0] == 0 and v_i[1] < 0: theta = 180.0
-        else:
-            # 弧度制
-            theta = math.acos( np.dot(v_i, v_vetical) 
-                                / (np.linalg.norm(v_i, ord=2) * np.linalg.norm(v_vetical, ord=2)))
-            # 角度制
-            theta = theta * 180 / np.pi
-            if v_i[0] > 0: theta
-            else: theta = 360.0-theta
+    def run(self, args):
+        ml = MyLog(self.output_path)
+        
+        # from args get arguments
+        self.make_args(args)
+        angle_threshold = args['angle_threshold']
+        hw_ratio_threshold = args['hw_ratio_threshold']
+        confi_threshold = args['confi_threshold']
+        calculator = args['calculator']
 
-        return theta, confi
-
-    def run(self, threshold=15):
+        ml.write("---------------------- args ---------------------", color='g')
+        args_str = utils.dic_to_string(args)
+        ml.write(args_str)
+        
         image_name_list, pose_data_dir = self.openpose_dataloader()
+        ct_0, ct_1, ct_n = 0, 0, 0
+        ct_back, ct_front, ct_side = 0, 0, 0
         for image_name in image_name_list:
             '''
-            pose_data = { 'json_path': str,
-                          'image_path': str,
-                          'image_size': {'width': int, 'height': int},
-                          'pose': [float []]
-                        }
+            format of 'pose_data' can be found in openpose_dataloader()
             '''
             pose_data = pose_data_dir[image_name]
             [front_dir, back_dir, side_dir] = utils.makedir_from_name_list([os.path.join(self.output_path, "front"),
                                                         os.path.join(self.output_path, "back"),
                                                         os.path.join(self.output_path, "side")])
-
+            
+            if len(pose_data['pose']) == 0:
+                ct_0 = ct_0 + 1
             # 暂时仅处理图片中检测到一个行人的
-            if len(pose_data['pose']) == 1:
-                theta, confi = self.calculator(pose_data['pose'][0], pose_data['image_size'])
-                dst_image_name = "c" + str(confi) + "_t" + str(theta) + "_" + image_name + ".png"
-                if theta >= 270-threshold and theta <= 270+threshold:
+            elif len(pose_data['pose']) == 1:
+                # 1. 先用长宽比判断, 长宽比小于阈值的图片直接作为侧视图
+                #                  长宽比大于阈值的图片在后续的判断中再决定是那种视图
+                image_size = pose_data['image_size']
+                if image_size['height'] / image_size['width'] < hw_ratio_threshold:
+                    theta, confi = 180, 1
+                else:
+                    if calculator == "shoulder_hip_calculator":
+                        theta, confi = self.shoulder_hip_calculator(pose_data['pose'][0])
+                    else:
+                        theta, confi = self.shoulder_calculator(pose_data['pose'][0])
+                    # 2. 根据置信度分类（前提是长宽比这个阈值存在），如果置信度如果低于阈值，直接根据判断角度是否是大于
+                    if hw_ratio_threshold > 0 and confi < confi_threshold:
+                        if theta > 180: 
+                            theta, confi = 270, 0
+                        else: 
+                            theta, confi = 90, 0
+                
+                # 对图片按照视角分类
+                dst_image_name = "t" + str(theta) + "_c" + str(confi) + "_" + image_name + ".png"
+                if theta >= 270-angle_threshold and theta <= 270+angle_threshold:
                     dst_path = os.path.join(front_dir, dst_image_name)
-                elif theta >= 90-threshold and theta <= 90+threshold:
+                    ct_front = ct_front + 1
+                elif theta >= 90-angle_threshold and theta <= 90+angle_threshold:
                     dst_path = os.path.join(back_dir, dst_image_name)
+                    ct_back = ct_back + 1
                 else:
                     dst_path = os.path.join(side_dir, dst_image_name)
-                shutil.copyfile(pose_data['image_path'], dst_path)
+                    ct_side = ct_side + 1
+                # display pose rendered image rather than original image.
+                shutil.copyfile(pose_data['rendered_image_path'], dst_path)
+                ct_1 = ct_1 + 1
                 
+            else: ct_n = ct_n + 1
+        
+        ml.write("---------------------- statistic ---------------------", color='g')
+        ml.write("image which not detected person number: \t" + str(ct_0))
+        ml.write("image which detected 1 person number: \t\t" + str(ct_1))
+        ml.write("image which detected >=2 person number: \t" + str(ct_n))
+        ml.write("---------------------- result ---------------------", color='g')
+        ml.write("back: " + str(ct_back) + "\nfront: " + str(ct_front) + "\nside: " + str(ct_side))
 
 if __name__ == "__main__":
-    kp2a = Keypoint2Angle(glb_dataset_path, glb_dataset_name, glb_output_path)
-    kp2a.run()
-    os.system("zip -qr " + glb_output_path + ".zip " + glb_output_path)
+    # init different varible for different mode
+    if MODE == 'bikeperson':
+        dataset_path = "/home/liyirui/PycharmProjects/dataset"
+        dataset_name = "BikePerson-700"
+        output_folder = "keypoint2angle"
+        output_path = os.path.join(dataset_path, output_folder)
+        args = {}
+    elif MODE == 'dml_ped':
+        dataset_path = "/home/liyirui/PycharmProjects/dataset"
+        dataset_name = "dml_ped12_market"
+        output_folder = "keypoint2angle_dml_ped12"
+        output_path = os.path.join(dataset_path, output_folder)
+        args = {'hw_ratio_threshold': 0, 
+                'confi_threshold': 0.5,
+                'calculator': 'shoulder_hip_calculator'}
+    else:
+        utils.color_print("[Error]: Uncorrect MODE value.")
+        exit()
+    
+    kp2a = Keypoint2Angle(dataset_path, dataset_name, output_path)
+    kp2a.run(args)
+    utils.color_print("---------------------- zip ---------------------", color="g")
+    os.system("cd " + dataset_path + "&& zip -qr " + output_folder + ".zip " + output_folder + "/")
+    print("ZIP finished.\nResult in " + os.path.join(dataset_path, output_folder+".zip"))
     
