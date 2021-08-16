@@ -5,11 +5,13 @@ Description: transform human pose like OpenPose format to angle size
 FilePath: /liyirui/PycharmProjects/BikePersonImageProcessing/keypoint_to_angle.py
 '''
 # public lib
+from multiprocessing import set_forkserver_preload
 import os
 import glob
 import json
 import re
 import shutil
+from types import LambdaType
 import numpy as np
 import math
 import imagesize  # https://github.com/shibukawa/imagesize_py
@@ -20,7 +22,7 @@ from mylog import MyLog
 
 # some global varible
 DEBUG = True
-MODE = 'dml_ped'  # 'bikeperson', 'dml_ped'
+MODE = 'bikeperson'  # 'bikeperson', 'dml_ped'
 
 
 class Keypoint2Angle:
@@ -46,6 +48,8 @@ class Keypoint2Angle:
         
     def openpose_dataloader(self):
         '''
+        detail:
+            read openpose format data from file
         return:
             image_name = []
             pose_data_dir = [{'json_path': str,
@@ -95,6 +99,7 @@ class Keypoint2Angle:
                 pose = json.load(pose_json_file)
                 pose_json_file.close()
                 image_name_list.append(image_name)
+
                 pose_data_dir[image_name] = {'json_path': pose_json_file_path, 
                                              'image_name': image_name,
                                              'image_path': image_path,
@@ -106,6 +111,7 @@ class Keypoint2Angle:
                                             }
                 for i in range(0, len(pose['people'])):
                     pose_data_dir[image_name]['pose'].append(pose['people'][i]['pose_keypoints_2d'])
+                
                 partition = partition + 1
                 utils.progress_bar(partition, total_len)
             
@@ -210,7 +216,53 @@ class Keypoint2Angle:
 
         return self.vector_included_angle(v_i, v_vetical), confi
     
+    def towards_of_side_view(self, pose):
+        '''
+        detail:
+            Result is Left or Right View.
+            Distinguish which specific view of person in side view in BikePerson dataset.
+            Use left arm, right arm, left leg, right leg this four parts.
+            Choose which is the most confident, and it's direction determine this image's point view.
+        input:
+            pose -- float[]
+        output:
+            "left_view" or "right_view" -- a string
+        '''
+        part_confi_dir, part_vec_dir = {}, {}
+
+        l_wrist_pnt, l_wrist_confi = self.get_keypoint_position(pose, "left_wrist")
+        l_shu_pnt, l_shu_confi = self.get_keypoint_position(pose, "left_shoulder")
+        l_arm_vec = self.get_np_vector_from_pnt(l_wrist_pnt, l_shu_pnt)
+        part_vec_dir["left_arm"], part_confi_dir["left_arm"] = l_arm_vec, min(l_shu_confi, l_wrist_confi)
+
+        r_wrist_pnt, r_wrist_confi = self.get_keypoint_position(pose, "right_wrist")
+        r_shu_pnt, r_shu_confi = self.get_keypoint_position(pose, "right_shoulder")
+        r_arm_vec = self.get_np_vector_from_pnt(r_wrist_pnt, r_shu_pnt)
+        part_vec_dir["right_arm"], part_confi_dir["right_arm"] = r_arm_vec, min(r_shu_confi, r_wrist_confi)
+
+        l_knee_pnt, l_knee_confi = self.get_keypoint_position(pose, "left_knee")
+        l_hip_pnt, l_hip_confi = self.get_keypoint_position(pose, "left_hip")
+        l_leg_vec = self.get_np_vector_from_pnt(l_knee_pnt, l_hip_pnt)
+        part_vec_dir["left_leg"], part_confi_dir["left_leg"] = l_leg_vec, min(l_knee_confi, l_hip_confi) 
+
+        r_knee_pnt, r_knee_confi = self.get_keypoint_position(pose, "right_knee")
+        r_hip_pnt, r_hip_confi = self.get_keypoint_position(pose, "right_hip")
+        r_leg_vec = self.get_np_vector_from_pnt(r_knee_pnt, r_hip_pnt)
+        part_vec_dir["right_leg"], part_confi_dir["right_leg"] = r_leg_vec, min(r_knee_confi, r_hip_confi)
+
+        # choose the most confience part from two arms and two legs
+        most_confient = sorted(part_confi_dir.items(), key=lambda item:item[1], reverse=True)[0][0]
+        if part_vec_dir[most_confient][0] >= 0: 
+            return "right_view"
+        else: 
+            return "left_view"
+
+
     def make_args(self, args):
+        '''
+        detail:
+            make sure every needed key is exists, if not, give a default value
+        '''
         if 'angle_threshold' not in args:
             args['angle_threshold'] = 15
         if 'hw_ratio_threshold' not in args: 
@@ -223,6 +275,7 @@ class Keypoint2Angle:
         return args
 
     def run(self, args):
+        # init log file
         ml = MyLog(self.output_path)
         
         # from args get arguments
@@ -238,15 +291,18 @@ class Keypoint2Angle:
         
         image_name_list, pose_data_dir = self.openpose_dataloader()
         ct_0, ct_1, ct_n = 0, 0, 0
-        ct_back, ct_front, ct_side = 0, 0, 0
+        ct_back, ct_front, ct_side, ct_left, ct_right = 0, 0, 0, 0, 0
         for image_name in image_name_list:
             '''
             format of 'pose_data' can be found in openpose_dataloader()
             '''
             pose_data = pose_data_dir[image_name]
-            [front_dir, back_dir, side_dir] = utils.makedir_from_name_list([os.path.join(self.output_path, "front"),
-                                                        os.path.join(self.output_path, "back"),
-                                                        os.path.join(self.output_path, "side")])
+            [front_dir, back_dir, side_dir, left_dir, right_dir] \
+                        = utils.makedir_from_name_list([os.path.join(self.output_path, "front_view"),
+                                                        os.path.join(self.output_path, "back_view"),
+                                                        os.path.join(self.output_path, "side_view"),
+                                                        os.path.join(self.output_path, "left_view"),
+                                                        os.path.join(self.output_path, "right_view")])
             
             if len(pose_data['pose']) == 0:
                 ct_0 = ct_0 + 1
@@ -278,8 +334,17 @@ class Keypoint2Angle:
                     dst_path = os.path.join(back_dir, dst_image_name)
                     ct_back = ct_back + 1
                 else:
-                    dst_path = os.path.join(side_dir, dst_image_name)
-                    ct_side = ct_side + 1
+                    # 如果是bikeperson数据集，则判断人的左右朝向
+                    if MODE == 'bikeperson':
+                        if self.towards_of_side_view(pose_data['pose'][0]) == "left_view":
+                            dst_path = os.path.join(left_dir, dst_image_name)
+                            ct_left = ct_left + 1
+                        else:
+                            dst_path = os.path.join(right_dir, dst_image_name)
+                            ct_right = ct_right + 1
+                    else:
+                        dst_path = os.path.join(side_dir, dst_image_name)
+                        ct_side = ct_side + 1
                 # display pose rendered image rather than original image.
                 shutil.copyfile(pose_data['rendered_image_path'], dst_path)
                 ct_1 = ct_1 + 1
@@ -291,14 +356,19 @@ class Keypoint2Angle:
         ml.write("image which detected 1 person number: \t\t" + str(ct_1))
         ml.write("image which detected >=2 person number: \t" + str(ct_n))
         ml.write("---------------------- result ---------------------", color='g')
-        ml.write("back: " + str(ct_back) + "\nfront: " + str(ct_front) + "\nside: " + str(ct_side))
+        ml.write("back view: " + str(ct_back) + "\nfront view: " + str(ct_front))
+        if MODE == "bikeperson":
+            ml.write("left view: " + str(ct_left) + "\nright view: " + str(ct_right))
+        elif MODE == "dml_ped":
+            ml.write("side view: " + str(ct_side))
+        ml.close()
 
 if __name__ == "__main__":
     # init different varible for different mode
     if MODE == 'bikeperson':
         dataset_path = "/home/liyirui/PycharmProjects/dataset"
         dataset_name = "BikePerson-700"
-        output_folder = "keypoint2angle"
+        output_folder = "keypoint2angle_bikeperson"
         output_path = os.path.join(dataset_path, output_folder)
         args = {}
     elif MODE == 'dml_ped':
