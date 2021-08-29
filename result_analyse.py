@@ -1,8 +1,99 @@
+'''
+Author: Li, Yirui
+Date: 2021-07-26
+Description: This code is about some result analysis of this project.
+FilePath: /liyirui/PycharmProjects/BikePersonImageProcessing/result_analyse.py
+'''
 import os
+from re import S
 import utils
+import glob
+import shutil
+
+class AngleInfluenceAnalysis:
+
+    def __init__(self, dataset_path, label_path):
+        self.dataset_path = dataset_path
+        self.label_path = label_path
+        self.image_name_label_dir = {}
+        self.image_name_ap_dir = {}
+        label_image_paths = glob.glob(self.label_path + "*/*.png")
+        result_image_paths = glob.glob(self.dataset_path + "*.png")
+        for path in label_image_paths:
+            image_name = path.split("/")[-1]
+            if path.find("back") != -1 or path.find("front") != -1:
+                self.image_name_label_dir[image_name] = "back-front"
+            else:
+                self.image_name_label_dir[image_name] = "side"
+        for path in result_image_paths:
+            image_name = path.split("/")[-1]
+            ap = float(image_name[:7])
+            image_name = image_name[8:-4]
+            self.image_name_ap_dir[image_name] = ap
+
+    def run(self):
+        id_angle_dir, id_ap_dir = {}, {}
+        print(len(self.image_name_ap_dir))
+        print(len(self.image_name_label_dir))
+        for image_name in self.image_name_ap_dir.keys():
+            id = image_name.split("_")[0]
+            ap = self.image_name_ap_dir[image_name]
+            angle = self.image_name_label_dir[image_name]
+            if id in id_angle_dir:
+                if id_angle_dir[id] == angle:
+                    id_angle_dir[id] = "same"
+                else:
+                    id_angle_dir[id] = "diff"
+                mean_ap = (ap + id_ap_dir[id]) / 2
+                id_ap_dir[id] = mean_ap
+            else: 
+                id_angle_dir[id] = angle
+                id_ap_dir[id] = ap
+        
+        same_ap, same_ct, diff_ap, diff_ct = 0, 0, 0, 0 
+        for id in id_angle_dir.keys():
+            if id_angle_dir[id] == "same":
+                same_ap = same_ap + id_ap_dir[id]
+                same_ct = same_ct + 1
+            else:
+                diff_ap = diff_ap + id_ap_dir[id]
+                diff_ct = diff_ct + 1
+
+        print("There are " + str(same_ct) + " have same angle.")
+        print("The mean ap of identity between same angle is :", same_ap / same_ct)
+        print("There are " + str(diff_ct) + " have different angle.")
+        print("The mean ap of identity between different angle is :", diff_ap/diff_ct)
+
+if __name__ == "__main__":
+    dataset_path = "/home/liyirui/PycharmProjects/ISP-reID/log/ISP-bikeperson-7-test-backup/results/"
+    label_path = "/home/liyirui/PycharmProjects/dataset/standard_angle_bikeperson/"
+    aia = AngleInfluenceAnalysis(dataset_path, label_path)
+    aia.run()
 
 
-class ResultAnalyse:
+'''
+This code may be about analyse the the two different kinds of 
+BikePerson-700 dataset's AP result of each query images.
+Something like compare BikePerson-700-orgin with BikePerson-700-seg,
+or compare BikePerson-700-origin with BikePerson-700-mixed_0_4.
+So maybe can use this class by give two dataset path when initializing.
+
+This code was used when I want to analyse how much influence of changing 
+color of bike in BikePerson re-id task.
+
+some old code in main.py:
+# This ResultAnalyse here is the old name of APChangeAnalysis.
+# dir_map = {"origin": "BP-700-origin-20210317",
+#            "seg": "BP-700-seg-20210317",
+#            "0_3": "BP-700-mixed_0_3-20210318",
+#            "0_4": "BP-700-mixed_0_4-20210317",
+#            "0_6": "BP-700-mixed_0_6-20210317"}
+#
+# result_analyse = ResultAnalyse(dir_map["origin"], dir_map["0_4"])
+# result_analyse.ap_result_analyse(do_display=True)
+
+'''
+class APChangeAnalysis:
     result_path1 = ""
     result_path2 = ""
 

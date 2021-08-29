@@ -1,3 +1,9 @@
+'''
+Author: Li, Yirui
+Date: 2021-07-26
+Description: This code is about visualizing presudo label learned in ISP-reID trainning.
+FilePath: /liyirui/PycharmProjects/BikePersonImageProcessing/result_visual_ispreid.py
+'''
 import cv2
 import os
 import matplotlib
@@ -5,9 +11,8 @@ import glob
 import utils
 from matplotlib import pyplot
 
-
 root = "/home/liyirui/PycharmProjects/dataset"
-dataset = "Market-1501"
+dataset = "BikePerson-700"
 origin_name = "bounding_box_train"
 pseudo_name = "train_pseudo_labels-ISP-7"
 parsing_name = "bounding_box_train_mask"
@@ -101,7 +106,7 @@ if __name__ == "__main__":
 
         plot_group_of_image(image_name_list)
 
-        output_image_path = os.path.join(out_folder_path, str(k) + ".png")
+        output_image_path = os.path.join(out_folder_path, str(k))
         pyplot.savefig(output_image_path)
         pyplot.close()
 

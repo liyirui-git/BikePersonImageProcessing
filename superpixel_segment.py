@@ -1,8 +1,10 @@
 import os
+from re import DEBUG
 import cv2
 import utils
 import keypoint_detection
 
+DEBUG = True
 
 class SuperPixel:
     # 这个色块的编号
@@ -21,7 +23,7 @@ class SuperPixelSegmentation:
     # skeleton: [[]] 骨架信息，为一个与输入的图片大小相同的矩阵
     # method: 使用的分割方法
     # ite：分割的迭代次数
-    # region_ration： 越大，分割得到的块越多
+    # region_ratio： 越大，分割得到的块越多
     def __init__(self, filename, input_folder, output_folder, skeleton, method='SLIC', ite=10, region_ratio=40):
         self.filename = filename
         self.filepath = os.path.join(input_folder, filename)
@@ -43,14 +45,15 @@ class SuperPixelSegmentation:
         # 骨架信息
         self.skeleton = skeleton
 
-    # 展示超像素分割的结果
-    def display(self):
+    # 返回超像素分割的结果可视化
+    def display(self, show=False):
         mask = self.spresult.getLabelContourMask()
         mask_inv = cv2.bitwise_not(mask)
         img = cv2.bitwise_and(self.image, self.image, mask=mask_inv)
-        cv2.imshow("img_lsc", img)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
+        if show:
+            cv2.imshow("img_lsc", img)
+            cv2.waitKey(0)
+            cv2.destroyAllWindows()
         return img
 
     '''
@@ -182,6 +185,7 @@ class SuperPixelSegmentation:
         # 2. 关键点检测的骨架信息放在 self.skeleton
         # 3. 将pose经过的地方作为初始点
         # 建立一个种子集合，将skeleton路过的种子点都加入进来
+        # ！！！如果想要改进为heatmap的话，可以从这里下手
         seeds_set = set()
         for i in range(self.height):
             for j in range(self.width):
@@ -251,11 +255,27 @@ if __name__ == '__main__':
         print(" begin at " + input_folder_path)
         total = len(filename_list)
         counter = 0
+
         for filename in filename_list:
-            sps = SuperPixelSegmentation(skeleton=kdp.get_skeleton_matrix(filename),
-                                         filename=filename,
-                                         input_folder=input_folder_path,
-                                         output_folder=output_folder_path)
-            sps.run()
-            counter = counter+1
-            utils.progress_bar(counter, total)
+            if DEBUG:
+                # filename = "0247_c6_eletric0009.png"
+                # filename = "0039_c3_eletric0005.png"
+                # filename = "0039_c5_eletric0001.png"
+                try:
+                    skeleton = kdp.get_skeleton_matrix(filename)
+                    sps = SuperPixelSegmentation(skeleton=skeleton,
+                                                 filename=filename,
+                                             input_folder=input_folder_path,
+                                            output_folder=output_folder_path)
+                    cv2.imwrite("test.png", sps.get_img_of_sps())
+                    
+                    sps.run()
+                    counter = counter+1
+                    utils.progress_bar(counter, total)
+                except:
+                    continue
+            
+            if DEBUG:
+                break
+        if DEBUG: 
+            break
