@@ -15,6 +15,7 @@ from types import LambdaType
 import numpy as np
 import math
 import imagesize  # https://github.com/shibukawa/imagesize_py
+import cv2
 
 # my lib
 import utils
@@ -22,7 +23,69 @@ from mylog import MyLog
 
 # some global varible
 DEBUG = True
+TEST = True
 MODE = 'bikeperson'  # 'bikeperson', 'dml_ped'
+
+
+def select_main_character(pose_data):
+    '''
+    detail:
+        Select the main character from persons which were detected from the image.
+    input:
+        pose_data: {'json_path': str,
+                    'image_name': str,
+                    'image_path': str,
+                    'image_size': {'width': int, 'height': int},
+                    'rendered_image_path': str,
+                    'heatmaps_path': str,
+                    'pose': [float []]}
+    return: 
+        mc_pose_data: {'json_path': str,
+                       'image_name': str,
+                       'image_path': str,
+                       'image_size': {'width': int, 'height': int},
+                       'rendered_image_path': str,
+                       'heatmaps_path': str,
+                       'pose': [float []]}
+    '''
+    pose_list = pose_data['pose']
+    image_size = pose_data['image_size']
+    mid_p = (image_size['width']/2, image_size['height']/2)
+    nearest_pose = []
+    nearest_dist = math.sqrt(mid_p[0]*mid_p[0] + mid_p[1]*mid_p[1])
+    for pose in pose_list:
+        avg_p = [0, 0]
+        counter = 0
+        for i in range(18):
+            if pose[i*3 + 2]:
+                avg_p[0] = avg_p[0] + pose[i*3]
+                avg_p[1] = avg_p[1] + pose[i*3 + 1]
+                counter = counter + 1
+        avg_p = (avg_p[0] / counter, avg_p[1] / counter)
+        d_vec = (avg_p[0] - mid_p[0], avg_p[1] - mid_p[1])
+        dist = math.sqrt(d_vec[0]*d_vec[0] + d_vec[1]*d_vec[1])
+        if dist < nearest_dist:
+            nearest_pose = pose
+            nearest_dist = dist
+
+    pose_data['pose'] = [nearest_pose]
+    return pose_data
+
+
+def paint_keypoints_on_image(pose_list, image, color=(255, 255, 255)):
+    '''
+    detail:
+        paint body keypoints in the image
+    input:
+        pose_list: float []
+        image: cv2 format image
+    return:
+        image: cv2 format image
+    '''
+    for pose in pose_list:
+        for i in range(18):
+            cv2.circle(image, (int(pose[i * 3]), int(pose[i * 3 + 1])), 3, color=color)
+    return image
 
 
 class Keypoint2Angle:
@@ -52,14 +115,13 @@ class Keypoint2Angle:
             read openpose format data from file
         return:
             image_name = []
-            pose_data_dir = [{'json_path': str,
-                              'image_name': str,
-                              'image_path': str,
-                              'image_size': {'width': int, 'height': int},
-                              'rendered_image_path': str,
-                              'heatmaps_path': str,
-                              'pose': [float []] },
-                            ]
+            pose_data_dir = {'image_name': {'json_path': str,
+                                            'image_name': str,
+                                            'image_path': str,
+                                            'image_size': {'width': int, 'height': int},
+                                            'rendered_image_path': str,
+                                            'heatmaps_path': str,
+                                            'pose': [float []]} }
         '''
         '''
         Example of openpose json
@@ -274,6 +336,7 @@ class Keypoint2Angle:
         
         return args
 
+
     def run(self, args):
         # init log file
         ml = MyLog(self.output_path)
@@ -303,7 +366,15 @@ class Keypoint2Angle:
                                                         os.path.join(self.output_path, "side_view"),
                                                         os.path.join(self.output_path, "left_view"),
                                                         os.path.join(self.output_path, "right_view")])
-            
+
+            if TEST:
+                if len(pose_data['pose']) > 1:
+                    pose_data = select_main_character(pose_data=pose_data)
+                    image = cv2.imread(pose_data["rendered_image_path"])
+                    image = paint_keypoints_on_image(pose_data['pose'], image)
+                    cv2.imwrite(os.path.join("test", pose_data['image_name']+".png"), image)
+                continue
+
             if len(pose_data['pose']) == 0:
                 ct_0 = ct_0 + 1
             # 暂时仅处理图片中检测到一个行人的
@@ -367,7 +438,7 @@ if __name__ == "__main__":
     # init different varible for different mode
     if MODE == 'bikeperson':
         dataset_path = "/home/liyirui/PycharmProjects/dataset"
-        dataset_name = "BikePerson-700"
+        dataset_name = "BikePerson-700-origin"
         output_folder = "keypoint2angle_bikeperson"
         output_path = os.path.join(dataset_path, output_folder)
         args = {}
