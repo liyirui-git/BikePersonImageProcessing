@@ -1,5 +1,4 @@
 import os
-from re import DEBUG
 import cv2
 import utils
 import keypoint_detection

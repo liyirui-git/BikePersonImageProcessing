@@ -6,87 +6,22 @@ FilePath: /liyirui/PycharmProjects/BikePersonImageProcessing/keypoint_to_angle.p
 '''
 # public lib
 import os
-import glob
 import json
-import re
 import shutil
 from sys import float_repr_style
 from types import LambdaType
 import numpy as np
 import math
-import imagesize  # https://github.com/shibukawa/imagesize_py
-import cv2
 import random
 
 # my lib
 import utils
+from keypoint_utils import *
 from mylog import MyLog
-
-
-def select_main_character(pose_data):
-    '''
-    detail:
-        Select the main character from persons which were detected from the image.
-    input:
-        pose_data: {'json_path': str,
-                    'image_name': str,
-                    'image_path': str,
-                    'image_size': {'width': int, 'height': int},
-                    'rendered_image_path': str,
-                    'heatmaps_path': str,
-                    'pose': [float []]}
-    return: 
-        mc_pose_data: {'json_path': str,
-                       'image_name': str,
-                       'image_path': str,
-                       'image_size': {'width': int, 'height': int},
-                       'rendered_image_path': str,
-                       'heatmaps_path': str,
-                       'pose': [float []]}
-    '''
-    pose_list = pose_data['pose']
-    image_size = pose_data['image_size']
-    mid_p = (image_size['width']/2, image_size['height']/2)
-    nearest_pose = []
-    nearest_dist = math.sqrt(mid_p[0]*mid_p[0] + mid_p[1]*mid_p[1])
-    for pose in pose_list:
-        avg_p = [0, 0]
-        counter = 0
-        for i in range(18):
-            if pose[i*3 + 2]:
-                avg_p[0] = avg_p[0] + pose[i*3]
-                avg_p[1] = avg_p[1] + pose[i*3 + 1]
-                counter = counter + 1
-        avg_p = (avg_p[0] / counter, avg_p[1] / counter)
-        d_vec = (avg_p[0] - mid_p[0], avg_p[1] - mid_p[1])
-        dist = math.sqrt(d_vec[0]*d_vec[0] + d_vec[1]*d_vec[1])
-        if dist < nearest_dist:
-            nearest_pose = pose
-            nearest_dist = dist
-
-    pose_data['pose'] = [nearest_pose]
-    return pose_data
-
-
-def paint_keypoints_on_image(pose_list, image, color=(255, 255, 255)):
-    '''
-    detail:
-        paint body keypoints in the image
-    input:
-        pose_list: float []
-        image: cv2 format image
-    return:
-        image: cv2 format image
-    '''
-    for pose in pose_list:
-        for i in range(18):
-            cv2.circle(image, (int(pose[i * 3]), int(pose[i * 3 + 1])), 3, color=color)
-    return image
+from keypoint_dataloader import KeypointDataLoader
 
 
 class Keypoint2Angle:
-    pose_dir_list = ["bounding_box_pose_train", "bounding_box_pose_test", "query_pose"]
-    reid_dir_list = ["bounding_box_train", "bounding_box_test", "query"]
     openpose_kp_dir = {"nose":1, "neck":2, "right_shoulder":3, "right_elbow":4, 
                        "right_wrist":5, "left_shoulder":6, "left_elbow":7, "left_wrist":8, 
                        "right_hip":9, "right_knee":10, "right_ankle":11, "left_hip":12, 
@@ -114,78 +49,6 @@ class Keypoint2Angle:
             folder_path = os.path.join(self.label_path, folder_name)
             for image_name in os.listdir(folder_path):
                 self.query_angle_label_dir[image_name] = folder_name
-
-    def openpose_dataloader(self):
-        '''
-        detail:
-            read openpose format data from file
-        return:
-            image_name = []
-            pose_data_dir = {'image_name': {'json_path': str,
-                                            'image_name': str,
-                                            'image_path': str,
-                                            'image_size': {'width': int, 'height': int},
-                                            'rendered_image_path': str,
-                                            'heatmaps_path': str,
-                                            'pose': [float []]} }
-        '''
-        '''
-        Example of openpose json
-        {"version":1.3,
-         "people":[{"person_id":[-1],
-                    "pose_keypoints_2d":[63.5233,36.5017,0.778086,...],
-                    "face_keypoints_2d":[],
-                    "hand_left_keypoints_2d":[],
-                    "hand_right_keypoints_2d":[],
-                    "pose_keypoints_3d":[],
-                    "face_keypoints_3d":[],
-                    "hand_left_keypoints_3d":[],
-                    "hand_right_keypoints_3d":[]
-                    }]
-        }
-        '''
-        pose_data_dir = {}
-        image_name_list = []
-        for index in range(3):
-            if DEBUG:   # In debug mode，only processing image in 'query'
-                index = 2
-            pose_folder_path = os.path.join(self.dataset_path, self.dataset_name, self.pose_dir_list[index])
-            pose_json_files = glob.glob(pose_folder_path + "/*_keypoints.json")
-            total_len = len(pose_json_files)
-            partition = 0
-            for pose_json_file_path in pose_json_files:
-                image_name_pattern = re.compile(r'\/([0-9]+_c[0-9]+_[a-z,0-9]+)_keypoints.json')
-                image_name = image_name_pattern.search(pose_json_file_path).groups()[0]
-                rendered_image_path = os.path.join(pose_folder_path, image_name + "_rendered.png")
-                heatmaps_path = os.path.join(pose_folder_path, image_name + "_pose_heatmaps.png")
-                image_folder_path = os.path.join(self.dataset_path, self.dataset_name, self.reid_dir_list[index])
-                image_path = os.path.join(image_folder_path, image_name + ".png")
-                if not os.path.exists(image_path):
-                    image_path = os.path.join(image_folder_path, image_name + ".jpg")
-                image_width, image_height = imagesize.get(image_path)
-                pose_json_file = open(pose_json_file_path, "r")
-                pose = json.load(pose_json_file)
-                pose_json_file.close()
-                image_name_list.append(image_name)
-
-                pose_data_dir[image_name] = {'json_path': pose_json_file_path, 
-                                             'image_name': image_name,
-                                             'image_path': image_path,
-                                             'image_size': {'width': image_width,
-                                                            'height': image_height},
-                                             'rendered_image_path': rendered_image_path,
-                                             'heatmaps_path': heatmaps_path,
-                                             'pose': []
-                                            }
-                for i in range(0, len(pose['people'])):
-                    pose_data_dir[image_name]['pose'].append(pose['people'][i]['pose_keypoints_2d'])
-                
-                partition = partition + 1
-                utils.progress_bar(partition, total_len)
-            
-            if DEBUG:
-                break
-        return image_name_list, pose_data_dir
 
     def get_standard_label_for_debug_mode(self, image_name):
         return self.query_angle_label_dir[image_name + ".png"]
@@ -376,7 +239,12 @@ class Keypoint2Angle:
         utils.color_print("---------------------- loading data ---------------------", color='g')
 
         # do keypoint to angle
-        image_name_list, pose_data_dir = self.openpose_dataloader()
+        if DEBUG:
+            kpdl = KeypointDataLoader(self.dataset_path, self.dataset_name, ["query_pose"], ["query"])
+        else:
+            kpdl = KeypointDataLoader(self.dataset_path, self.dataset_name)
+        
+        image_name_list, pose_data_dir = kpdl.openpose_dataloader()
         ct_total, ct_0 = 0, 0
         ct_back, ct_front, ct_side, ct_left, ct_right = 0, 0, 0, 0, 0
         ct_back_correct, ct_front_correct, ct_side_correct, ct_left_correct, ct_right_correct = 0, 0, 0, 0, 0
@@ -501,21 +369,21 @@ class Keypoint2Angle:
         ml.write("---------------------- result ---------------------", color='g')
         ml.write("back view: " + str(ct_back))
         if DEBUG:
-            ml.write("correct rate: " + str(ct_back_correct) + "/" + str(ct_back) + "=" + str(round(ct_back_correct/ct_back)) + "\n")
+            ml.write("correct rate: " + str(ct_back_correct) + "/" + str(ct_back) + "=" + str(round(ct_back_correct/ct_back, 4)) + "\n")
         ml.write("front view: " + str(ct_front))
         if DEBUG:
-            ml.write("correct rate: " + str(ct_front_correct) + "/" + str(ct_front) + "=" + str(round(ct_front_correct/ct_front)) +"\n")
+            ml.write("correct rate: " + str(ct_front_correct) + "/" + str(ct_front) + "=" + str(round(ct_front_correct/ct_front, 4)) +"\n")
         if mode == "bikeperson_4_view":
             ml.write("left view: " + str(ct_left))
             if DEBUG:
-                ml.write("correct rate: " + str(ct_left_correct) + "/" + str(ct_left) + "=" + str(round(ct_left_correct/ct_left)) +"\n")
+                ml.write("correct rate: " + str(ct_left_correct) + "/" + str(ct_left) + "=" + str(round(ct_left_correct/ct_left, 4)) +"\n")
             ml.write("right view: " + str(ct_right))
             if DEBUG:
-                ml.write("correct rate: " + str(ct_right_correct) + "/" + str(ct_right) + "=" + str(round(ct_right_correct/ct_right)) +"\n")
+                ml.write("correct rate: " + str(ct_right_correct) + "/" + str(ct_right) + "=" + str(round(ct_right_correct/ct_right, 4)) +"\n")
         elif mode == "bikeperson_3_view":
             ml.write("side view: " + str(ct_side))
             if DEBUG:
-                ml.write("correct rate: " + str(ct_side_correct) + "/" + str(ct_side) + "=" + str(round(ct_side_correct/ct_side)) +"\n")
+                ml.write("correct rate: " + str(ct_side_correct) + "/" + str(ct_side) + "=" + str(round(ct_side_correct/ct_side, 4)) +"\n")
         ml.write("total: " + str(ct_side + ct_left + ct_right + ct_back + ct_front))
         
         if if_zip:
@@ -535,7 +403,7 @@ class Keypoint2Angle:
 
 
 # some global varible
-DEBUG = True   # If DEBUG == True, it means only calculate query images and return accuracy
+DEBUG = False   # If DEBUG == True, it means only calculate query images and return accuracy
 TEST_GET_MAIN_CHARACTER = False  # If this True, it will output GET_MAIN_CHARACTER method's result
 MODE = 'bikeperson_3_view'  # There is two options of MODE: 'bikeperson_3_view', 'bikeperson_4_view'
 '''
