@@ -22,14 +22,6 @@ import random
 import utils
 from mylog import MyLog
 
-# some global varible
-DEBUG = False
-TEST_GET_MAIN_CHARACTER = False
-MODE = 'bikeperson_3_view'  # 'bikeperson_3_view', 'bikeperson_4_view'
-'''
-bikeperson_3_view: back, front, side
-bikeperson_4_view: back, front, left, right
-'''
 
 def select_main_character(pose_data):
     '''
@@ -356,6 +348,8 @@ class Keypoint2Angle:
             args['zip'] = False
         if 'output_label' not in args:
             args['output_label'] = False
+        if 'copy_rendered_image' not in args:
+            args['copy_rendered_image'] = False
         
         return args
 
@@ -373,29 +367,33 @@ class Keypoint2Angle:
         mode = args['mode']
         if_zip = args['zip']
         if_output_label = args['output_label']
+        if_copy_rendered_image = args['copy_rendered_image']
 
         ml.write("---------------------- args ---------------------", color='g')
         args_str = utils.dic_to_string(args)
         ml.write(args_str)
         
+        utils.color_print("---------------------- loading data ---------------------", color='g')
+
         # do keypoint to angle
         image_name_list, pose_data_dir = self.openpose_dataloader()
-        ct_0 = 0
+        ct_total, ct_0 = 0, 0
         ct_back, ct_front, ct_side, ct_left, ct_right = 0, 0, 0, 0, 0
         ct_back_correct, ct_front_correct, ct_side_correct, ct_left_correct, ct_right_correct = 0, 0, 0, 0, 0
         image_name_angle_view_dir = {}
 
+        utils.color_print("---------------------- calculation ---------------------", color='g')
         for image_name in image_name_list:
             '''
             format of 'pose_data' can be found in openpose_dataloader()
             '''
             pose_data = pose_data_dir[image_name]
-            [front_dir, back_dir, side_dir, left_dir, right_dir] \
-                        = utils.makedir_from_name_list([os.path.join(self.output_path, "front_view"),
-                                                        os.path.join(self.output_path, "back_view"),
-                                                        os.path.join(self.output_path, "side_view"),
-                                                        os.path.join(self.output_path, "left_view"),
-                                                        os.path.join(self.output_path, "right_view")])
+            front_dir, back_dir, side_dir, left_dir, right_dir = os.path.join(self.output_path, "front_view"), \
+                                                                 os.path.join(self.output_path, "back_view"),  \
+                                                                 os.path.join(self.output_path, "side_view"),  \
+                                                                 os.path.join(self.output_path, "left_view"),  \
+                                                                 os.path.join(self.output_path, "right_view")
+            
             '''
             if TEST_GET_MAIN_CHARACTER:
                 if len(pose_data['pose']) > 1:
@@ -405,6 +403,7 @@ class Keypoint2Angle:
                     cv2.imwrite(os.path.join("test", pose_data['image_name']+".png"), image)
                 continue
             '''
+
             if len(pose_data['pose']) == 0: 
                 ct_0 = ct_0 + 1
             # 如果图片中检测得到多个人，可能是多人骑一辆车，也可能是存在遮挡，则先选取主要的那个人
@@ -488,38 +487,44 @@ class Keypoint2Angle:
                         if view == "left_view" or view == "right_view":
                             ct_side_correct = ct_side_correct + 1
                     image_name_angle_view_dir[image_name] = "side_view"
-            # display pose rendered image rather than original image.
-            shutil.copyfile(pose_data['rendered_image_path'], dst_path)
+            
+            if if_copy_rendered_image:
+                utils.makedir_from_name_list([front_dir, back_dir, side_dir, left_dir, right_dir])
+                # display pose rendered image rather than original image.
+                shutil.copyfile(pose_data['rendered_image_path'], dst_path)
+
+            ct_total = ct_total + 1
+            utils.progress_bar(ct_total, len(image_name_list))
         
         ml.write("---------------------- statistic ---------------------", color='g')
-        ml.write("image which not detected person number: \t" + str(ct_0))
+        ml.write("image which not detected person number: \t" + str(ct_0) + "/" + str(ct_total) + "=" + str(round(ct_0/ct_total, 4)))
         ml.write("---------------------- result ---------------------", color='g')
         ml.write("back view: " + str(ct_back))
         if DEBUG:
-            ml.write("correct rate: " + str(ct_back_correct) + "/" + str(ct_back) + "=" + str(ct_back_correct/ct_back) + "\n")
+            ml.write("correct rate: " + str(ct_back_correct) + "/" + str(ct_back) + "=" + str(round(ct_back_correct/ct_back)) + "\n")
         ml.write("front view: " + str(ct_front))
         if DEBUG:
-            ml.write("correct rate: " + str(ct_front_correct) + "/" + str(ct_front) + "=" + str(ct_front_correct/ct_front) +"\n")
-        if mode == "'bikeperson_4_view'":
+            ml.write("correct rate: " + str(ct_front_correct) + "/" + str(ct_front) + "=" + str(round(ct_front_correct/ct_front)) +"\n")
+        if mode == "bikeperson_4_view":
             ml.write("left view: " + str(ct_left))
             if DEBUG:
-                ml.write("correct rate: " + str(ct_left_correct) + "/" + str(ct_left) + "=" + str(ct_left_correct/ct_left) +"\n")
+                ml.write("correct rate: " + str(ct_left_correct) + "/" + str(ct_left) + "=" + str(round(ct_left_correct/ct_left)) +"\n")
             ml.write("right view: " + str(ct_right))
             if DEBUG:
-                ml.write("correct rate: " + str(ct_right_correct) + "/" + str(ct_right) + "=" + str(ct_right_correct/ct_right) +"\n")
-        elif mode == "bikeperson":
+                ml.write("correct rate: " + str(ct_right_correct) + "/" + str(ct_right) + "=" + str(round(ct_right_correct/ct_right)) +"\n")
+        elif mode == "bikeperson_3_view":
             ml.write("side view: " + str(ct_side))
             if DEBUG:
-                ml.write("correct rate: " + str(ct_side_correct) + "/" + str(ct_side) + "=" + str(ct_side_correct/ct_side) +"\n")
-       
-
+                ml.write("correct rate: " + str(ct_side_correct) + "/" + str(ct_side) + "=" + str(round(ct_side_correct/ct_side)) +"\n")
+        ml.write("total: " + str(ct_side + ct_left + ct_right + ct_back + ct_front))
+        
         if if_zip:
-            utils.color_print("---------------------- zip ---------------------", color="g")
+            ml.write("---------------------- zip ---------------------", color="g")
             os.system("cd " + self.dataset_path + "&& zip -qr " + self.output_folder + ".zip " + self.output_folder + "/")
             ml.write("ZIP finished.\nResult in " + os.path.join(self.dataset_path, self.output_folder+".zip"))
 
         if if_output_label:
-            utils.color_print("---------------------- output label ---------------------", color="g")
+            ml.write("---------------------- output label ---------------------", color="g")
             json_format_dic = json.dumps(image_name_angle_view_dir)
             output_file = open(os.path.join(self.output_path, "angle_label.json"), "w")
             output_file.write(json_format_dic)
@@ -528,14 +533,26 @@ class Keypoint2Angle:
         
         ml.close()
 
+
+# some global varible
+DEBUG = True   # If DEBUG == True, it means only calculate query images and return accuracy
+TEST_GET_MAIN_CHARACTER = False  # If this True, it will output GET_MAIN_CHARACTER method's result
+MODE = 'bikeperson_3_view'  # There is two options of MODE: 'bikeperson_3_view', 'bikeperson_4_view'
+'''
+bikeperson_3_view: back, front, side
+bikeperson_4_view: back, front, left, right
+'''
+
 if __name__ == "__main__":
     # init different varible for different mode
-    if MODE == 'bikeperson_3_view' or MODE == "'bikeperson_4_view'":
+    if MODE == 'bikeperson_3_view' or MODE == "bikeperson_4_view":
         dataset_path = "/home/liyirui/PycharmProjects/dataset"
         dataset_name = "BikePerson-700-origin"
         output_folder = "keypoint2angle_" + MODE
+        if DEBUG:
+            output_folder = output_folder + "_DEBUG"
         label_path = os.path.join(dataset_path, "standard_angle_bikeperson")
-        # Can refer to method: make_args()
+        # Can refer to method: make_args() to get other arguments and their default value.
         args = {'mode': MODE, 'output_label': True}
     else:
         utils.color_print("[Error]: Uncorrect MODE value.")
