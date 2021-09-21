@@ -1,9 +1,9 @@
+from keypoint_utils import get_heatmaps_matrix, get_pose_skeleton_matrix
 import os
 import cv2
 import utils
 import keypoint_detection
-
-DEBUG = True
+from keypoint_dataloader import openpose_file_loader
 
 class SuperPixel:
     # 这个色块的编号
@@ -218,6 +218,7 @@ class SuperPixelSegmentation:
             counter = counter + 1
             d_threshold = d_threshold * decreasing_ratio
         self.save_img(os.path.join(self.output_folder, self.filename), seeds=seeds_set, labels=label_lsc)
+        # print("result in : " + os.path.join(self.output_folder, self.filename))
 
     # 展示结果
     def display_region(self, seeds_set, label_lsc):
@@ -239,42 +240,81 @@ class SuperPixelSegmentation:
         self.part_combination()
 
 
+DEBUG = True
+FORMAT = "openpose"     # "openpose", "alphapose"
+
 if __name__ == '__main__':
-    kdp = keypoint_detection.KeyPointDetection("BikePerson-700")
-
-    folder_list = ["query", "bounding_box_test", "bounding_box_train"]
-    input_path = "BikePerson-700/BikePerson-700-origin"
-    output_path = "BikePerson-700/BikePerson-700-superpixel-seg"
-    utils.makedir_from_name_list([output_path])
-
-    for folder in folder_list:
-        input_folder_path = os.path.join(input_path, folder)
-        output_folder_path = os.path.join(output_path, folder)
-        filename_list = os.listdir(input_folder_path)
-        print(" begin at " + input_folder_path)
-        total = len(filename_list)
-        counter = 0
-
-        for filename in filename_list:
-            if DEBUG:
-                # filename = "0247_c6_eletric0009.png"
-                # filename = "0039_c3_eletric0005.png"
-                # filename = "0039_c5_eletric0001.png"
-                try:
-                    skeleton = kdp.get_skeleton_matrix(filename)
-                    sps = SuperPixelSegmentation(skeleton=skeleton,
-                                                 filename=filename,
-                                             input_folder=input_folder_path,
-                                            output_folder=output_folder_path)
-                    cv2.imwrite("test.png", sps.get_img_of_sps())
-                    
-                    sps.run()
-                    counter = counter+1
-                    utils.progress_bar(counter, total)
-                except:
-                    continue
+    if FORMAT == "openpose":
+        dataset_path = "/home/liyirui/PycharmProjects/dataset"
+        dataset_name = "BikePerson-700-origin"
+        output_dataset_name = dataset_name + "-superpixel-seg-openpose"
+        input_path = os.path.join(dataset_path, dataset_name)
+        output_path = os.path.join(dataset_path, output_dataset_name)
+        folder_list = ["query", "bounding_box_train", "bounding_box_test"]
+        pose_folder_list = ["query_pose", "bounding_box_pose_train", "bounding_box_pose_test"]
+        utils.makedir_from_name_list([output_path,
+                                      os.path.join(output_path, folder_list[0]),
+                                      os.path.join(output_path, folder_list[1]),
+                                      os.path.join(output_path, folder_list[2])])
+        ct = 0
+        for i in range(3):
+            folder_name = folder_list[i]
+            pose_folder_name = pose_folder_list[i]
+            for image_name in os.listdir(os.path.join(input_path, folder_name)):
+                pose_data = openpose_file_loader(image_name.split('.')[0], 
+                                                 os.path.join(input_path, pose_folder_name),
+                                                 os.path.join(input_path, folder_name))
+                # 这里得到的骨架是有问题的
+                get_heatmaps_matrix(pose_data)
+                continue
+                skeleton = get_pose_skeleton_matrix(pose_data)
+                sps = SuperPixelSegmentation(skeleton=skeleton,
+                                             filename=image_name,
+                                             input_folder=os.path.join(input_path, folder_name),
+                                             output_folder=os.path.join(output_path, folder_name))
+                sps.run()
+                ct = ct + 1
+                utils.progress_bar(ct, len( os.listdir(os.path.join(input_path, folder_name))))
             
             if DEBUG:
+                exit()
+
+    
+    if FORMAT == "alphapose":
+        kdp = keypoint_detection.KeyPointDetection("BikePerson-700")
+        folder_list = ["query", "bounding_box_test", "bounding_box_train"]
+        input_path = "BikePerson-700/BikePerson-700-origin"
+        output_path = "BikePerson-700/BikePerson-700-superpixel-seg"
+        utils.makedir_from_name_list([output_path])
+
+        for folder in folder_list:
+            input_folder_path = os.path.join(input_path, folder)
+            output_folder_path = os.path.join(output_path, folder)
+            filename_list = os.listdir(input_folder_path)
+            print(" begin at " + input_folder_path)
+            total = len(filename_list)
+            counter = 0
+
+            for filename in filename_list:
+                if DEBUG:
+                    filename = "0247_c6_eletric0009.png"
+                    # filename = "0039_c3_eletric0005.png"
+                    # filename = "0039_c5_eletric0001.png"
+                    try:
+                        skeleton = kdp.get_skeleton_matrix(filename)
+                        sps = SuperPixelSegmentation(skeleton=skeleton,
+                                                    filename=filename,
+                                                    input_folder=input_folder_path,
+                                                    output_folder=output_folder_path)
+                        cv2.imwrite("test.png", sps.get_img_of_sps())
+                    
+                        sps.run()
+                        counter = counter+1
+                        utils.progress_bar(counter, total)
+                    except:
+                        continue
+            
+                if DEBUG:
+                    break
+            if DEBUG: 
                 break
-        if DEBUG: 
-            break

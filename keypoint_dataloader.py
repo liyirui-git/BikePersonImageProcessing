@@ -17,11 +17,6 @@ import utils
 
 pose_dir_list = ["bounding_box_pose_train", "bounding_box_pose_test", "query_pose"]
 reid_dir_list = ["bounding_box_train", "bounding_box_test", "query"]
-openpose_kp_dir = {"nose":1, "neck":2, "right_shoulder":3, "right_elbow":4, 
-                       "right_wrist":5, "left_shoulder":6, "left_elbow":7, "left_wrist":8, 
-                       "right_hip":9, "right_knee":10, "right_ankle":11, "left_hip":12, 
-                       "left_knee":13, "left_ankle":14, "right_eye":15, "left_eye":16, 
-                       "right_ear":17, "left_ear": 18}
 
 def openpose_file_loader(image_name, pose_folder_path, image_folder_path):
     image_path = os.path.join(image_folder_path, image_name + ".png")

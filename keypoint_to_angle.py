@@ -22,11 +22,6 @@ from keypoint_dataloader import KeypointDataLoader
 
 
 class Keypoint2Angle:
-    openpose_kp_dir = {"nose":1, "neck":2, "right_shoulder":3, "right_elbow":4, 
-                       "right_wrist":5, "left_shoulder":6, "left_elbow":7, "left_wrist":8, 
-                       "right_hip":9, "right_knee":10, "right_ankle":11, "left_hip":12, 
-                       "left_knee":13, "left_ankle":14, "right_eye":15, "left_eye":16, 
-                       "right_ear":17, "left_ear": 18}
     
     def __init__(self, dataset_path, dataset_name, label_path, output_folder, format='openpose'):
         self.dataset_path = dataset_path
@@ -80,14 +75,14 @@ class Keypoint2Angle:
             get keypoint position and confidence from given pose array
         args:
             pose -- float[], a array of pose info
-            keypoint_name -- str, a name of keypoint which is a key in self.openpose_kp_dir 
+            keypoint_name -- str, a name of keypoint which is a key in openpose_kp_dir 
         return:
             pnt -- (float, float), point position 
             confi -- float, confidence of this keypoint 
         '''
-        pnt = (pose[3*(self.openpose_kp_dir[keypoint_name]-1)], 
-               pose[3*(self.openpose_kp_dir[keypoint_name]-1) + 1])
-        confi = pose[3*(self.openpose_kp_dir[keypoint_name]-1) + 2]
+        pnt = (pose[3*(openpose_kp_dir[keypoint_name])], 
+               pose[3*(openpose_kp_dir[keypoint_name]) + 1])
+        confi = pose[3*(openpose_kp_dir[keypoint_name]) + 2]
         
         return pnt, confi
 
@@ -403,7 +398,7 @@ class Keypoint2Angle:
 
 
 # some global varible
-DEBUG = False   # If DEBUG == True, it means only calculate query images and return accuracy
+DEBUG = True   # If DEBUG == True, it means only calculate query images and return accuracy
 TEST_GET_MAIN_CHARACTER = False  # If this True, it will output GET_MAIN_CHARACTER method's result
 MODE = 'bikeperson_3_view'  # There is two options of MODE: 'bikeperson_3_view', 'bikeperson_4_view'
 '''
