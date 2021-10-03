@@ -30,8 +30,6 @@ class SuperPixelSegmentation:
         self.output_folder = utils.makedir_from_name_list([output_folder])[0]
         self.image = cv2.imread(self.filepath)
         self.output_image = cv2.imread(self.filepath)
-        # cv2.imshow("before", self.output_image)
-        # cv2.waitKey()
         self.height, self.width = self.image.shape[0], self.image.shape[1]
         region_size = int(self.height / region_ratio)
         # 做超像素分割
@@ -43,17 +41,6 @@ class SuperPixelSegmentation:
             self.spresult.iterate(ite)
         # 骨架信息
         self.skeleton = skeleton
-
-    # 返回超像素分割的结果可视化
-    def display(self, show=False):
-        mask = self.spresult.getLabelContourMask()
-        mask_inv = cv2.bitwise_not(mask)
-        img = cv2.bitwise_and(self.image, self.image, mask=mask_inv)
-        if show:
-            cv2.imshow("img_lsc", img)
-            cv2.waitKey(0)
-            cv2.destroyAllWindows()
-        return img
 
     '''
     def superpixel_seeds(self, show=False, ite=10):
@@ -181,18 +168,19 @@ class SuperPixelSegmentation:
                     c3 = c3 + color[2]
                 c1, c2, c3 = c1 / size, c2 / size, c3 / size
                 superpixel_map[i].average_color = [c1, c2, c3]
-        # 2. 关键点检测的骨架信息放在 self.skeleton
-        # 3. 将pose经过的地方作为初始点
+        
+        # 2. 关键点检测的骨架信息放在 self.skeleton, 将pose经过的地方作为初始点
         # 建立一个种子集合，将skeleton路过的种子点都加入进来
         # ！！！如果想要改进为heatmap的话，可以从这里下手
         seeds_set = set()
         for i in range(self.height):
             for j in range(self.width):
-                if self.skeleton[i][j] == 1:
+                if self.skeleton[i][j] != 0:
                     seeds_set.add(label_lsc[i][j])
         if display:
             self.display_region(seeds_set, label_lsc)
-        # 4. 逐跳操作
+        
+        # 3. 逐跳操作
         # 对于当前集合中的色块，根据邻接表，判断相邻色块的平均颜色与当前色块的距离是否满足阈值
         # 循环n轮，或者直到没有新的色块可以加进来为止
         # 每一次循环之后，可以将阈值减小到一定的比例
@@ -221,12 +209,20 @@ class SuperPixelSegmentation:
         # print("result in : " + os.path.join(self.output_folder, self.filename))
 
     # 展示结果
-    def display_region(self, seeds_set, label_lsc):
+    def display_region(self, seeds_set, label_lsc, show=False):
         for i in range(self.height):
             for j in range(self.width):
                 if label_lsc[i][j] in seeds_set:
                     self.image[i][j] = [255, 0, 255]
-        self.display()
+        
+        mask = self.spresult.getLabelContourMask()
+        mask_inv = cv2.bitwise_not(mask)
+        img = cv2.bitwise_and(self.image, self.image, mask=mask_inv)
+        if show:
+            cv2.imshow("img_lsc", img)
+            cv2.waitKey(0)
+            cv2.destroyAllWindows()
+        return img
 
     # 导出结果
     def save_img(self, output_file, seeds, labels):
@@ -240,10 +236,44 @@ class SuperPixelSegmentation:
         self.part_combination()
 
 
-DEBUG = True
-FORMAT = "openpose"     # "openpose", "alphapose"
+DEBUG = True    # if DEBUG is True, only calculate image in query
+FORMAT = "heatmap"     # "openpose", "alphapose", "heatmap"
 
 if __name__ == '__main__':
+    if FORMAT == "heatmap":
+        dataset_path = "/home/liyirui/PycharmProjects/dataset"
+        dataset_name = "BikePerson-700-origin"
+        output_dataset_name = dataset_name + "-superpixel-seg-heatmaps"
+        input_path = os.path.join(dataset_path, dataset_name)
+        output_path = os.path.join(dataset_path, output_dataset_name)
+        folder_list = ["query", "bounding_box_train", "bounding_box_test"]
+        pose_folder_list = ["query_pose", "bounding_box_pose_train", "bounding_box_pose_test"]
+        utils.makedir_from_name_list([output_path,
+                                      os.path.join(output_path, folder_list[0]),
+                                      os.path.join(output_path, folder_list[1]),
+                                      os.path.join(output_path, folder_list[2])])
+        ct = 0
+        for i in range(3):
+            folder_name = folder_list[i]
+            pose_folder_name = pose_folder_list[i]
+            for image_name in os.listdir(os.path.join(input_path, folder_name)):
+                pose_data = openpose_file_loader(image_name.split('.')[0], 
+                                                 os.path.join(input_path, pose_folder_name),
+                                                 os.path.join(input_path, folder_name))
+                ct = ct + 1
+                print(str(ct) + ": " + os.path.join(input_path, folder_name, image_name))
+                heatmap = get_heatmaps_matrix(pose_data)
+                sps = SuperPixelSegmentation(skeleton=heatmap,
+                                             filename=image_name,
+                                             input_folder=os.path.join(input_path, folder_name),
+                                             output_folder=os.path.join(output_path, folder_name))
+                sps.run()
+                # ct = ct + 1
+                # utils.progress_bar(ct, len( os.listdir(os.path.join(input_path, folder_name))))
+            
+            if DEBUG:
+                exit()
+
     if FORMAT == "openpose":
         dataset_path = "/home/liyirui/PycharmProjects/dataset"
         dataset_name = "BikePerson-700-origin"
@@ -264,17 +294,16 @@ if __name__ == '__main__':
                 pose_data = openpose_file_loader(image_name.split('.')[0], 
                                                  os.path.join(input_path, pose_folder_name),
                                                  os.path.join(input_path, folder_name))
-                # 这里得到的骨架是有问题的
-                get_heatmaps_matrix(pose_data)
-                continue
+                ct = ct + 1
+                print(str(ct) + ": " + os.path.join(input_path, folder_name, image_name))
                 skeleton = get_pose_skeleton_matrix(pose_data)
                 sps = SuperPixelSegmentation(skeleton=skeleton,
                                              filename=image_name,
                                              input_folder=os.path.join(input_path, folder_name),
                                              output_folder=os.path.join(output_path, folder_name))
                 sps.run()
-                ct = ct + 1
-                utils.progress_bar(ct, len( os.listdir(os.path.join(input_path, folder_name))))
+                # ct = ct + 1
+                # utils.progress_bar(ct, len( os.listdir(os.path.join(input_path, folder_name))))
             
             if DEBUG:
                 exit()

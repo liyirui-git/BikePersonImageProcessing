@@ -5,13 +5,21 @@ Description: This code is about some result analysis of this project.
 FilePath: /liyirui/PycharmProjects/BikePersonImageProcessing/result_analyse.py
 '''
 import os
-from re import S
 import utils
 import glob
-import shutil
 
 class AngleInfluenceAnalysis:
-
+    '''
+    This class is used to analys the influence of angle of different view in 
+    ReID task in BikePerson-700 dataset.
+    input:
+        dataset_path: str, path of ISP-reID's result. something like 
+            "ISP-reID/log/ISP-bikeperson-700-same-id-diff-view-0_1-test-backup/results/"
+            you can get this result by using code in ISP-reID tools/result_visualize.py
+        lable_path: str, path of labeled point view images.
+    output:
+        print the result in the terminal
+    '''
     def __init__(self, dataset_path, label_path):
         self.dataset_path = dataset_path
         self.label_path = label_path
@@ -65,14 +73,14 @@ class AngleInfluenceAnalysis:
         print("The mean ap of identity between different angle is :", diff_ap/diff_ct)
 
 if __name__ == "__main__":
-    dataset_path = "/home/liyirui/PycharmProjects/ISP-reID/log/ISP-bikeperson-7-test-backup/results/"
+    dataset_path = "/home/liyirui/PycharmProjects/ISP-reID/log/ISP-bikeperson-700-same-id-diff-view-0_1-test-backup/results/"
     label_path = "/home/liyirui/PycharmProjects/dataset/standard_angle_bikeperson/"
     aia = AngleInfluenceAnalysis(dataset_path, label_path)
     aia.run()
 
 
 '''
-This code may be about analyse the the two different kinds of 
+This code maybe about analyse the the two different kinds of 
 BikePerson-700 dataset's AP result of each query images.
 Something like compare BikePerson-700-orgin with BikePerson-700-seg,
 or compare BikePerson-700-origin with BikePerson-700-mixed_0_4.
