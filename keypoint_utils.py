@@ -155,6 +155,9 @@ def get_heatmaps_matrix(pose_data, visualize=False, ostu=True, binary_threshold=
         cv2.imwrite(heatmaps_path.split(".")[0] + "_convert.png", heatmap_total)
     
     if ostu:
+        # cv2.imshow("heatmap", heatmap_otsu)
+        # cv2.waitKey(0)
+        # cv2.destroyAllWindows()
         return heatmap_otsu
     else: 
         return heatmap_binary
