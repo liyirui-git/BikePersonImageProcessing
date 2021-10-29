@@ -50,5 +50,7 @@ dependencies:
   - zlib=1.2.11=h62dcd97_4
   - zstd=1.4.5=h04227a9_0
   - pip:
-    - opencv-python==4.5.1.48
-prefix: C:\ProgramFiles\Anaconda3\envs\matplotlib37
+    - imagesize==1.2.0
+    - opencv-contrib-python==3.4.2.16
+    - opencv-python==3.4.2.16
+prefix: C:\ProgramFiles\Anaconda3\envs\bpp
