@@ -296,7 +296,7 @@ class SuperPixelSegmentation:
         self.part_combination(display=display)
 
 
-DEBUG = True    # if DEBUG is True, only calculate image in query
+DEBUG = False    # if DEBUG is True, only calculate image in query
 FORMAT = "test"     # "openpose", "alphapose", "heatmap"
 
 if __name__ == '__main__':
@@ -328,7 +328,7 @@ if __name__ == '__main__':
                                              filename=image_name,
                                              input_folder=os.path.join(input_path, folder_name),
                                              output_folder=os.path.join(output_path, folder_name))
-                sps.run(display=False)
+                sps.run(display=True)
 
             if DEBUG:
                  exit()
