@@ -236,7 +236,7 @@ class SuperPixelSegmentation:
             space_ratio = seg_space / image_space
 
         self.save_img(os.path.join(self.output_folder, self.filename), seeds=seeds_set, labels=label, visual=display)
-        print("\tresult in : " + os.path.join(self.output_folder, self.filename))
+        # print("\tresult in : " + os.path.join(self.output_folder, self.filename))
 
     # 展示结果
     def display_region(self, seeds_set, label_lsc, show=False):
@@ -296,8 +296,8 @@ class SuperPixelSegmentation:
         self.part_combination(display=display)
 
 
-DEBUG = True    # if DEBUG is True, only calculate image in query
-FORMAT = "test"     # "openpose", "alphapose", "heatmap"
+DEBUG = False    # if DEBUG is True, only calculate image in query
+FORMAT = "heatmap"     # "openpose", "alphapose", "heatmap", "test"
 
 if __name__ == '__main__':
     if FORMAT == "test":
@@ -333,10 +333,11 @@ if __name__ == '__main__':
             if DEBUG:
                  exit()
 
+    # 这里其实是 heatmap + pose
     if FORMAT == "heatmap":
         dataset_path = "/home/liyirui/PycharmProjects/dataset"
         dataset_name = "BikePerson-700-origin"
-        output_dataset_name = dataset_name + "-superpixel-seg-heatmaps"
+        output_dataset_name = dataset_name + "-superpixel-seg-heatmaps-plus-pose"
         input_path = os.path.join(dataset_path, dataset_name)
         output_path = os.path.join(dataset_path, output_dataset_name)
         folder_list = ["query", "bounding_box_train", "bounding_box_test"]
@@ -345,24 +346,27 @@ if __name__ == '__main__':
                                       os.path.join(output_path, folder_list[0]),
                                       os.path.join(output_path, folder_list[1]),
                                       os.path.join(output_path, folder_list[2])])
-        ct = 0
-        for i in range(3):
+        for i in range(0,3):
             folder_name = folder_list[i]
             pose_folder_name = pose_folder_list[i]
+            ct = 0
             for image_name in os.listdir(os.path.join(input_path, folder_name)):
-                pose_data = openpose_file_loader(image_name.split('.')[0], 
+                try:
+                    pose_data = openpose_file_loader(image_name.split('.')[0], 
                                                  os.path.join(input_path, pose_folder_name),
                                                  os.path.join(input_path, folder_name))
-                ct = ct + 1
-                print(str(ct) + ": " + os.path.join(input_path, folder_name, image_name))
-                heatmap = get_heatmaps_matrix(pose_data)
-                sps = SuperPixelSegmentation(skeleton=heatmap,
+                    # print(str(ct) + ": " + os.path.join(input_path, folder_name, image_name))
+                    heatmap = get_heatmaps_matrix(pose_data)
+                    skeleton = get_pose_skeleton_matrix(pose_data) + heatmap
+                    sps = SuperPixelSegmentation(skeleton=skeleton,
                                              filename=image_name,
                                              input_folder=os.path.join(input_path, folder_name),
                                              output_folder=os.path.join(output_path, folder_name))
-                sps.run()
-                # ct = ct + 1
-                # utils.progress_bar(ct, len( os.listdir(os.path.join(input_path, folder_name))))
+                    sps.run()
+                except:
+                    utils.color_print("[warning]some error occured in "+ os.path.join(input_path, folder_name, image_name), color="y")
+                ct = ct + 1
+                utils.progress_bar(ct, len( os.listdir(os.path.join(input_path, folder_name))))
             
             if DEBUG:
                 exit()
@@ -379,10 +383,10 @@ if __name__ == '__main__':
                                       os.path.join(output_path, folder_list[0]),
                                       os.path.join(output_path, folder_list[1]),
                                       os.path.join(output_path, folder_list[2])])
-        ct = 0
         for i in range(3):
             folder_name = folder_list[i]
             pose_folder_name = pose_folder_list[i]
+            ct = 0
             for image_name in os.listdir(os.path.join(input_path, folder_name)):
                 pose_data = openpose_file_loader(image_name.split('.')[0], 
                                                  os.path.join(input_path, pose_folder_name),
