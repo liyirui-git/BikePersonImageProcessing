@@ -328,7 +328,7 @@ if __name__ == '__main__':
                                              filename=image_name,
                                              input_folder=os.path.join(input_path, folder_name),
                                              output_folder=os.path.join(output_path, folder_name))
-                sps.run(display=False)
+                sps.run(display=True)
 
             if DEBUG:
                  exit()
