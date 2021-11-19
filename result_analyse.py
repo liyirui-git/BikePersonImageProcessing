@@ -27,6 +27,8 @@ class AngleInfluenceAnalysis:
         self.image_name_ap_dir = {}
         label_image_paths = glob.glob(self.label_path + "*/*.png")
         result_image_paths = glob.glob(self.dataset_path + "*.png")
+        print("The number of image with label: ", len(label_image_paths))
+        print("The number of image in result: ", len(result_image_paths))
         for path in label_image_paths:
             image_name = path.split("/")[-1]
             if path.find("back") != -1 or path.find("front") != -1:
@@ -41,8 +43,6 @@ class AngleInfluenceAnalysis:
 
     def run(self):
         id_angle_dir, id_ap_dir = {}, {}
-        print(len(self.image_name_ap_dir))
-        print(len(self.image_name_label_dir))
         for image_name in self.image_name_ap_dir.keys():
             id = image_name.split("_")[0]
             ap = self.image_name_ap_dir[image_name]
@@ -73,7 +73,7 @@ class AngleInfluenceAnalysis:
         print("The mean ap of identity between different angle is :", diff_ap/diff_ct)
 
 if __name__ == "__main__":
-    dataset_path = "/home/liyirui/PycharmProjects/ISP-reID/log/ISP-bikeperson-700-same-id-diff-view-0_1-test-backup/results/"
+    dataset_path = "/home/liyirui/PycharmProjects/ISP-reID/log/ISP-BikePerson-700-train-140-7-angle-new-55-new-test/results/"
     label_path = "/home/liyirui/PycharmProjects/dataset/standard_angle_bikeperson/"
     aia = AngleInfluenceAnalysis(dataset_path, label_path)
     aia.run()
