@@ -28,14 +28,15 @@ class SuperPixelSegmentation:
     # method: 使用的分割方法
     # ite：分割的迭代次数
     # region_ratio： 越大，分割得到的块越多
-    def __init__(self, filename, input_folder, output_folder, skeleton, method='SLIC', ite=10, region_ratio=17):
+    def __init__(self, filename, input_folder, output_folder, skeleton, color='gray', method='SLIC', ite=10, region_ratio=17):
         self.filename = filename
         self.filepath = os.path.join(input_folder, filename)
         self.input_folder = input_folder
-        self.output_folder = utils.makedir_from_name_list([output_folder])[0]
+        self.output_folder = utils.makedir_from_name_list([output_folder + '_' + color])[0]
         self.image = cv2.imread(self.filepath)
         self.output_image = cv2.imread(self.filepath)
         self.height, self.width = self.image.shape[0], self.image.shape[1]
+        self.color = color
         region_size = int(self.height / region_ratio)
         # 做超像素分割
         if method == 'SLIC':
@@ -53,50 +54,6 @@ class SuperPixelSegmentation:
         self.skeleton = skeleton
         self.bf_space_threshold = 0.25
         self.side_space_threshold = 0.1
-
-    '''
-    def superpixel_seeds(self, show=False, ite=10):
-        img = cv2.imread(self.filename)
-        # 初始化seeds项，注意图片长宽的顺序
-        seeds = cv2.ximgproc.createSuperpixelSEEDS(img.shape[1], img.shape[0], img.shape[2], 2000, 15, 3, 5, True)
-        try:
-            seeds.iterate(img, ite)  # 输入图像大小必须与初始化形状相同，迭代次数为10
-        except:
-            print("\n error in " + self.filename)
-        mask_seeds = seeds.getLabelContourMask()
-        label_seeds = seeds.getLabels()
-        number_seeds = seeds.getNumberOfSuperpixels()
-        mask_inv_seeds = cv2.bitwise_not(mask_seeds)
-        img_seeds = cv2.bitwise_and(img, img, mask=mask_inv_seeds)
-        if show:
-            cv2.imshow("img_seeds", img_seeds)
-            cv2.waitKey(0)
-            cv2.destroyAllWindows()
-        return img_seeds
-    
-    def display_segmentation(self, folder_path):
-        image_name_list = os.listdir(folder_path)
-        ct = 0
-        kpd = keypoint_detection.KeyPointDetection("BikePerson-700")
-        for image_name in image_name_list:
-            image_path = os.path.join(folder_path, image_name)
-            img1 = self.superpixel_slic(image_path)
-            img2 = self.superpixel_seeds(image_path)
-            thickness = int(min(img1.shape[1], img1.shape[0]) / 90 + 1)
-            image_array = [cv2.cvtColor(img1, cv2.COLOR_BGR2RGB),
-                           cv2.cvtColor(
-                               kpd.paint_pose_on_images(image_name, cv_img=img1, thickness=thickness),
-                               cv2.COLOR_BGR2RGB),
-                           cv2.cvtColor(img2, cv2.COLOR_BGR2RGB),
-                           cv2.cvtColor(
-                               kpd.paint_pose_on_images(image_name, cv_img=img2, thickness=thickness),
-                               cv2.COLOR_BGR2RGB)]
-            tag_list = ["SLIC", "keypoint", "SEEDS", "keypoint"]
-            utils.img_display_array(image_array, "superpixel_" + image_name,
-                                    tag_list=tag_list, fig_show=False, fig_size=(16, 9))
-            ct = ct + 1
-            utils.progress_bar(ct, len(image_name_list))
-    '''
 
     # 将超像素分割得到的色块合并
     def part_combination(self, threshold=24, ite=5, decreasing_ratio=0.4, display=False):
@@ -234,8 +191,10 @@ class SuperPixelSegmentation:
                 self.display_region(seeds_set, label, True)
             counter = counter + 1
             space_ratio = seg_space / image_space
-
-        self.save_img(os.path.join(self.output_folder, self.filename), seeds=seeds_set, labels=label, visual=display)
+        if self.color == 'gray':
+            self.save_img(os.path.join(self.output_folder, self.filename), seeds=seeds_set, labels=label, visual=display)
+        else:
+            self.save_img(os.path.join(self.output_folder, self.filename), seeds=seeds_set, labels=label, visual=display, color='black')
         # print("\tresult in : " + os.path.join(self.output_folder, self.filename))
 
     # 展示结果
@@ -257,7 +216,7 @@ class SuperPixelSegmentation:
         return img
 
     # 导出结果
-    def save_img(self, output_file, seeds, labels, visual=True, method="blur"):
+    def save_img(self, output_file, seeds, labels, visual=True, method="blur", color='gray'):
         mask = self.output_image.copy()
         for i in range(self.height):
             for j in range(self.width):
@@ -288,7 +247,10 @@ class SuperPixelSegmentation:
         for i in range(self.height):
             for j in range(self.width):
                 if mask_dilate[i][j][0] == 0 and mask_dilate[i][j][1] == 0 and mask_dilate[i][j][2] == 0:
-                    self.output_image[i][j] = [0, 0, 0]
+                    if color == 'gray':
+                        self.output_image[i][j] = [128, 128, 128]
+                    else:
+                        self.output_image[i][j] = [0, 0, 0]
 
         cv2.imwrite(output_file, self.output_image)
 
@@ -346,7 +308,7 @@ if __name__ == '__main__':
                                       os.path.join(output_path, folder_list[0]),
                                       os.path.join(output_path, folder_list[1]),
                                       os.path.join(output_path, folder_list[2])])
-        for i in range(0,3):
+        for i in range(1,2):
             folder_name = folder_list[i]
             pose_folder_name = pose_folder_list[i]
             ct = 0
